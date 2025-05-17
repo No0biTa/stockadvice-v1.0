@@ -398,4 +398,20 @@ const HomePage = ({ onNavigate }) => {
               </svg>
             </div>
             <h3>Data Historis</h3>
-            <p>Telusuri data historis s
+            <p>Telusuri data historis saham untuk analisis jangka panjang</p>
+          </div>
+        </div>
+      </section>
+      </div>
+      
+      {/* DevNoticeModal */}
+      <DevNoticeModal 
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
+      
+    </div>
+  );
+};
+
+export default HomePage;

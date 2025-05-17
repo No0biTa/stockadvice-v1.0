@@ -743,4 +743,17 @@ const formatDate = (dateString) => {
                   Halaman {currentPage} dari {totalPages} ({filteredNews.length} berita)
                 </div>
               </div>
-      
+            )}
+          </>
+        ) : (
+          <div className="no-news-found">
+            <h3>Tidak ada berita yang ditemukan</h3>
+            <p>Coba ubah filter atau kata kunci pencarian Anda</p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+export default NewsPage;
