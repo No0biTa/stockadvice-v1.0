@@ -88,7 +88,7 @@ const Footer = () => {
         
         <div className="footer-bottom">
           <div className="footer-divider"></div>
-          <p>Koala &copy; {currentYear} StockAdvice | Platform Analisis Pasar Saham V1</p>
+          <p>Koala &copy; {currentYear} StockAdvice public v1.0 | Platform Analisis Pasar Saham</p>
           <p className="footer-disclaimer">
             Disclaimer: Informasi yang disajikan bukan merupakan rekomendasi investasi. Investasi saham memiliki risiko.
           </p>

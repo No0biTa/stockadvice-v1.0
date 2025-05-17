@@ -126,7 +126,7 @@ const AboutPage = () => {
             <div className="timeline-dot"></div>
             <div className="timeline-content">
               <h3>Mei 2025</h3>
-              <p>Peluncuran resmi StockAdvice v1.0 dengan fitur dasar analisis teknikal dan fundamental.</p>
+              <p>Peluncuran resmi StockAdvice v1.0 public dengan fitur dan fungsional yang masih dasar.</p>
             </div>
           </div>
 
@@ -134,7 +134,7 @@ const AboutPage = () => {
             <div className="timeline-dot"></div>
             <div className="timeline-content">
               <h3>Sekarang</h3>
-              <p>StockAdvice v1.1.2 dengan peningkatan performa dan fitur analisis yang lebih komprehensif.</p>
+              <p>StockAdvice v1.1.2 sedang dalam development dengan peningkatan performa dan fitur analisis yang lebih komprehensif.</p>
             </div>
           </div>
           
