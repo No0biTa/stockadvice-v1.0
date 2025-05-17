@@ -1,16 +1,56 @@
+/* Container luar untuk memastikan scrolling horizontal berfungsi */
+.stock-chart-outer-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Container utama dengan scrolling */
 .stock-chart-container {
   width: 100%;
-  overflow: visible;
-  border-radius: 0 0 8px 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; /* Untuk scrolling halus di iOS */
+  position: relative;
+  margin-bottom: 5px;
   padding: 15px 0;
 }
 
+/* Wrapper untuk memastikan chart memiliki minimal width */
+.stock-chart-wrapper {
+  min-width: 500px; /* Minimal width untuk grafik */
+  height: 100%;
+  position: relative;
+}
+
+/* Styling untuk tren harga berbeda */
+.stock-chart-wrapper.up .recharts-line-curve {
+  stroke: #10B981; /* Hijau untuk tren naik */
+}
+
+.stock-chart-wrapper.down .recharts-line-curve {
+  stroke: #EF4444; /* Merah untuk tren turun */
+}
+
+.stock-chart-wrapper.down .recharts-area-curve {
+  stroke: #EF4444; /* Merah untuk tren turun (area chart) */
+}
+
+.stock-chart-wrapper.down .recharts-area {
+  fill: rgba(239, 68, 68, 0.1); /* Merah transparan untuk area chart */
+}
+
+.stock-chart-wrapper.down defs linearGradient stop {
+  stop-color: #EF4444 !important; /* Merah untuk gradient pada tren turun */
+}
+
+/* Custom tooltip styling */
 .custom-tooltip {
   background-color: rgba(255, 255, 255, 0.95);
   border: 1px solid #ccc;
   border-radius: 6px;
   padding: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   font-size: 12px;
   min-width: 200px;
 }
@@ -41,18 +81,75 @@
 }
 
 .positive-change {
-  color: #4CAF50;
+  color: #10B981; /* Hijau untuk perubahan positif */
 }
 
 .negative-change {
-  color: #E53935;
+  color: #EF4444; /* Merah untuk perubahan negatif */
 }
 
+/* Loading state */
 .chart-loading {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   height: 300px;
-  color: #666;
-  font-style: italic;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Scrollbar styling untuk browser yang mendukung */
+.stock-chart-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.stock-chart-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.stock-chart-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.stock-chart-container::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Mendukung tampilan di layar kecil */
+@media (max-width: 768px) {
+  .custom-tooltip {
+    padding: 8px;
+    font-size: 11px;
+    min-width: 180px;
+  }
+  
+  .tooltip-date {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+}
+
+/* Scroll indicator untuk menunjukkan bahwa grafik bisa di-scroll */
+.stock-chart-outer-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.7));
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.8;
+}
+
+/* Hapus indicator scroll jika sudah scroll ke kanan */
+.stock-chart-container::-webkit-scrollbar-thumb:active + .stock-chart-outer-container::after,
+.stock-chart-container:hover + .stock-chart-outer-container::after {
+  opacity: 0;
+  transition: opacity 0.3s;
 }

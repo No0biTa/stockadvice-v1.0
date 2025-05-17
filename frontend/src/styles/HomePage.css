@@ -392,22 +392,34 @@
   }
 }
 
-@media (max-width: 576px) {
-  .stocks-grid, .features-grid {
+@media screen and (max-width: 576px) {
+  /* Perbaikan kartu saham */
+  .stocks-grid {
     grid-template-columns: 1fr;
   }
   
-  .hero-content h1 {
-    font-size: 1.8rem;
-  }
-  
-  
-  
-  .section-title {
-    font-size: 1.6rem;
-  }
-  
   .stock-card {
+    width: 100%;
     margin-bottom: 15px;
+  }
+  
+  /* Perbaikan fitur kartu */
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Hero section */
+  .hero-section {
+    padding: 30px 15px;
+  }
+  
+  .hero-content h1 {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  
+  .hero-content p {
+    font-size: 16px;
+    margin-bottom: 20px;
   }
 }

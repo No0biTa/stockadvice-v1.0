@@ -1,0 +1,145 @@
+/* Navbar Styles */
+.navbar {
+  background-color: var(--header-bg);
+  background-image: linear-gradient(to right, var(--dark-color), var(--dark-light));
+  color: white;
+  box-shadow: 0 3px 10px var(--shadow-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.8rem 2rem;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.navbar-logo a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: white;
+}
+
+.navbar-logo svg {
+  color: var(--secondary-light);
+}
+
+.navbar-logo span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to right, var(--light-color), var(--secondary-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.navbar-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 0.5rem 0;
+  position: relative;
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--secondary-light);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--secondary-light);
+  transition: var(--transition);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-link.active {
+  color: var(--secondary-light);
+}
+
+.nav-link.active::after {
+  width: 100%;
+  background-color: var(--secondary-light);
+}
+
+/* Media queries untuk responsivitas */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.6rem 1rem;
+  }
+  
+  .navbar-links {
+    gap: 1rem;
+  }
+  
+  .navbar-logo span {
+    font-size: 1.3rem;
+  }
+  
+  .nav-link {
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile view adjustments */
+@media (max-width: 576px) {
+  .navbar-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .navbar-links {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  
+  .nav-link {
+    font-size: 0.8rem;
+    padding: 0.4rem;
+  }
+  
+  .navbar-logo span {
+    font-size: 1.2rem;
+  }
+  
+  .navbar-logo svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Super small screens */
+@media (max-width: 400px) {
+  .navbar-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .nav-link {
+    padding: 0.3rem 0.5rem;
+  }
+}

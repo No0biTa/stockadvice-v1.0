@@ -127,17 +127,13 @@ const StockAnalysisPage = ({
   // State for preloaded categories
   const [preloadedCategories, setPreloadedCategories] = useState({});
 
-  // State untuk DevNoticeModal (sesuaikan dengan HomePage)
+  // State untuk DevNoticeModal
   const [symbol, setSymbol] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(() => {
     // Cek nilai hideDevNotice
     const hideDevNotice = localStorage.getItem('hideDevNotice');
     // Cek apakah ada timestamp
     const hideDevNoticeTime = localStorage.getItem('hideDevNoticeTime');
-    
-    // Log untuk debugging
-    console.log("Initial hideDevNotice value:", hideDevNotice);
-    console.log("Initial hideDevNoticeTime value:", hideDevNoticeTime);
     
     // Jika hideDevNotice ada, periksa apakah sudah 2 jam
     if (hideDevNotice === 'true' && hideDevNoticeTime) {
@@ -149,7 +145,6 @@ const StockAnalysisPage = ({
       
       // Jika lebih dari 2 jam, reset localStorage dan tampilkan modal
       if (now - savedTime > twoHours) {
-        console.log("More than 2 hours since last hide, resetting modal");
         localStorage.removeItem('hideDevNotice');
         localStorage.removeItem('hideDevNoticeTime');
         return true; // Tampilkan modal
@@ -163,7 +158,9 @@ const StockAnalysisPage = ({
     return hideDevNotice !== 'true';
   });
 
-  // Refs
+  // Tambahkan state dan ref untuk dropdown positioning
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const inputGroupRef = useRef(null);
   const symbolInputRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -179,11 +176,78 @@ const StockAnalysisPage = ({
 
   // Calculate if we're in mobile view
   const isMobileView = windowWidth < 768;
+  const isLargeScreen = windowWidth >= 1400;
 
-  // Modifikasi useEffect untuk mengecek modal saat mount (sesuaikan dengan HomePage)
+  // Fungsi untuk update posisi dropdown - IMPROVED VERSION
+  const updateDropdownPosition = () => {
+    if (inputGroupRef.current && showStocksList) {
+      const rect = inputGroupRef.current.getBoundingClientRect();
+      const navbarElement = document.querySelector('header, nav');
+      const navbarHeight = navbarElement ? navbarElement.getBoundingClientRect().height : 60;
+      const viewportWidth = window.innerWidth;
+      
+      // Hitung posisi dropdown
+      let topPosition = rect.bottom;
+      let leftPosition = rect.left;
+      let dropdownWidth = Math.min(450, rect.width); // Batas maksimal lebar dropdown
+      
+      // Periksa apakah dropdown akan berada di atas navbar
+      if (rect.top < navbarHeight) {
+        // Tempatkan dropdown relatif terhadap layar dan tambahkan offset navbar
+        topPosition = navbarHeight + 5; // 5px padding dari navbar
+      }
+      
+      // Untuk layar kecil, gunakan design yang lebih responsif
+      if (viewportWidth < 768) {
+        // Pada mobile, buat dropdown lebih lebar dan di tengah
+        dropdownWidth = Math.min(viewportWidth * 0.95, 450);
+        leftPosition = (viewportWidth - dropdownWidth) / 2;
+      } else {
+        // Pastikan dropdown tidak keluar dari layar
+        if (leftPosition + dropdownWidth > viewportWidth) {
+          leftPosition = Math.max(10, viewportWidth - dropdownWidth - 10);
+        }
+      }
+      
+      setDropdownPosition({
+        top: topPosition,
+        left: leftPosition,
+        width: dropdownWidth
+      });
+    }
+  };
+
+  // Update posisi dropdown saat scroll
   useEffect(() => {
-    console.log("Checking if modal should be shown");
-    
+    if (showStocksList) {
+      // Tambahkan kelas no-scroll pada body untuk mencegah scroll
+      document.body.classList.add('no-scroll');
+      
+      // Update position awal
+      updateDropdownPosition();
+      
+      const handleScroll = () => {
+        // Saat scroll, segera tutup dropdown
+        setShowStocksList(false);
+      };
+      
+      // Tambahkan event listener untuk scroll
+      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', updateDropdownPosition);
+      
+      // Clean up
+      return () => {
+        document.body.classList.remove('no-scroll');
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', updateDropdownPosition);
+      };
+    } else {
+      document.body.classList.remove('no-scroll');
+    }
+  }, [showStocksList]);
+
+  // Modifikasi useEffect untuk mengecek modal saat mount
+  useEffect(() => {
     // Cek nilai hideDevNotice dan timestamp
     const hideDevNotice = localStorage.getItem('hideDevNotice');
     const hideDevNoticeTime = localStorage.getItem('hideDevNoticeTime');
@@ -195,36 +259,22 @@ const StockAnalysisPage = ({
       
       if (now - savedTime > twoHours) {
         // Lebih dari 2 jam, reset localStorage dan tampilkan modal
-        console.log("More than 2 hours since last hide, resetting modal");
         localStorage.removeItem('hideDevNotice');
         localStorage.removeItem('hideDevNoticeTime');
         setIsModalOpen(true);
-      } else {
-        // Belum 2 jam, tampilkan info waktu tersisa
-        const remainingTime = twoHours - (now - savedTime);
-        console.log(`Modal will show again in ${Math.round(remainingTime / 1000)} seconds`);
       }
     } else if (hideDevNotice !== 'true') {
       // Jika hideDevNotice tidak ada atau bukan true, tampilkan modal
-      console.log("Setting modal to open - no valid hide setting found");
       setIsModalOpen(true);
     }
   }, []);
 
-  // Modifikasi handler untuk menutup modal (sesuaikan dengan HomePage)
+  // Modifikasi handler untuk menutup modal
   const handleCloseModal = (dontShowAgain) => {
-    console.log("Modal closed, don't show again:", dontShowAgain);
-    
     if (dontShowAgain) {
       // Jika dicentang "jangan tampilkan lagi", simpan preference dan timestamp
       localStorage.setItem('hideDevNotice', 'true');
       localStorage.setItem('hideDevNoticeTime', Date.now().toString());
-      
-      // Log timestamp dan kapan akan muncul kembali
-      const now = Date.now();
-      const twoHours = 2 * 60 * 60 * 1000; // 2 jam dalam milidetik
-      console.log(`Modal hidden with timestamp: ${now}`);
-      console.log(`Modal will show again at: ${new Date(now + twoHours).toLocaleTimeString()}`);
     } else {
       // Jika tidak dicentang, hapus setting (akan tampil lagi saat refresh)
       localStorage.removeItem('hideDevNotice');
@@ -235,7 +285,7 @@ const StockAnalysisPage = ({
     setIsModalOpen(false);
   };
 
-  // Tambahkan useEffect untuk melakukan pengecekan periodis (sesuaikan dengan HomePage)
+  // Tambahkan useEffect untuk melakukan pengecekan periodis
   useEffect(() => {
     // Jika modal tidak tampil, lakukan pengecekan timer
     if (!isModalOpen) {
@@ -251,14 +301,9 @@ const StockAnalysisPage = ({
           
           if (now - savedTime > twoHours) {
             // Lebih dari 2 jam, reset localStorage dan tampilkan modal
-            console.log("Timer check: More than 2 hours since last hide, showing modal");
             localStorage.removeItem('hideDevNotice');
             localStorage.removeItem('hideDevNoticeTime');
             setIsModalOpen(true);
-          } else {
-            // Log waktu tersisa (diaktifkan di semua environment)
-            const remainingMinutes = Math.round((twoHours - (now - savedTime)) / (60 * 1000));
-            console.log(`Time remaining until modal shows again: ${remainingMinutes} minutes`);
           }
         }
       }, 5000); // Cek setiap 5 detik
@@ -268,94 +313,122 @@ const StockAnalysisPage = ({
     }
   }, [isModalOpen]);
 
+  // Tambahkan useEffect untuk mengatur efek blur saat modal terbuka
+  useEffect(() => {
+    const contentContainer = document.querySelector('.app-content');
+    if (contentContainer) {
+      if (isModalOpen) {
+        // Tambahkan class blur saat modal terbuka
+        contentContainer.classList.add('blur-background');
+        // Nonaktifkan scrolling pada body
+        document.body.style.overflow = 'hidden';
+      } else {
+        // Hapus class blur saat modal tertutup
+        contentContainer.classList.remove('blur-background');
+        // Aktifkan kembali scrolling
+        document.body.style.overflow = 'auto';
+      }
+    }
+    
+    // Pembersihan saat komponen unmount
+    return () => {
+      const contentContainer = document.querySelector('.app-content');
+      if (contentContainer) {
+        contentContainer.classList.remove('blur-background');
+      }
+      // Pastikan scrolling diaktifkan kembali saat komponen unmount
+      document.body.style.overflow = 'auto';
+    };
+  }, [isModalOpen]);
+
   // Memoized handlers
   const memoizedFetchStockData = useCallback(async (symbolToFetch = null) => {
-  // Use provided symbol or current symbol state
-  const stockSymbol = symbolToFetch || symbol;
+    // Use provided symbol or current symbol state
+    const stockSymbol = symbolToFetch || symbol;
 
-  // Jika tidak ada symbol, jangan fetch data
-  if (!stockSymbol.trim()) {
-    setStockData([]);
-    setError(null);
-    setLastFetched(null);
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-  // Update activeSymbol dan symbol state
-  setActiveSymbol(stockSymbol);
-  if (symbolToFetch) setSymbol(stockSymbol);
-
-  const params = {
-    symbol: stockSymbol,
-    interval: chartInterval
-  };
-
-  // Use custom date range or standard period
-  if (useDateRange && startDate && endDate) {
-    params.start_date = startDate;
-    params.end_date = endDate;
-  } else {
-    params.period = chartPeriod;
-  }
-
-  try {
-    // Using our optimized fetchStock function from useStockAPI
-    const result = await fetchStock(params);
-    
-    if (result.status === 'success' && result.data?.length > 0) {
-      // Determine currency symbol based on stock symbol
-      const usesIndonesianCurrency = isIndonesianStock(stockSymbol);
-      setCurrencySymbol(usesIndonesianCurrency ? 'Rp' : '$');
-
-      // Update data info
-      setDataInfo({
-        isRealtime: false,
-        delay: usesIndonesianCurrency ? "15 minutes" : "15-20 minutes",
-        source: "Yahoo Finance (yfinance)"
-      });
-
-      setStockData(result.data);
-      setLastFetched(new Date(result.timestamp));
-
-      // Update stock price in state
-      if (result.data.length > 1) {
-        const latest = result.data[0];
-        const previous = result.data[1];
-
-        setStockPrices(prevPrices => ({
-          ...prevPrices,
-          [stockSymbol]: {
-            price: latest.Close,
-            change: latest.Close - previous.Close,
-            changePercent: ((latest.Close - previous.Close) / previous.Close) * 100,
-            timestamp: result.timestamp
-          }
-        }));
-      }
-    } else {
-      // Handle error case
-      setError(result.error || 'No data available');
+    // Jika tidak ada symbol, jangan fetch data
+    if (!stockSymbol.trim()) {
       setStockData([]);
+      setError(null);
+      setLastFetched(null);
+      return;
     }
-  } catch (err) {
-    console.error('Error details:', err);
-    setStockData([]);
-    setError(`Failed to fetch data: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-}, [
-  symbol,
-  chartInterval,
-  useDateRange,
-  startDate,
-  endDate,
-  chartPeriod,
-  fetchStock,
-  isIndonesianStock
-]);
+
+    setLoading(true);
+    setError(null);
+    // Update activeSymbol dan symbol state
+    setActiveSymbol(stockSymbol);
+    if (symbolToFetch) setSymbol(stockSymbol);
+
+    const params = {
+      symbol: stockSymbol,
+      interval: chartInterval
+    };
+
+    // Use custom date range or standard period
+    if (useDateRange && startDate && endDate) {
+      params.start_date = startDate;
+      params.end_date = endDate;
+    } else {
+      params.period = chartPeriod;
+    }
+
+    try {
+      // Using our optimized fetchStock function from useStockAPI
+      const result = await fetchStock(params);
+      
+      if (result.status === 'success' && result.data?.length > 0) {
+        // Determine currency symbol based on stock symbol
+        const usesIndonesianCurrency = isIndonesianStock(stockSymbol);
+        setCurrencySymbol(usesIndonesianCurrency ? 'Rp' : '$');
+
+        // Update data info
+        setDataInfo({
+          isRealtime: false,
+          delay: usesIndonesianCurrency ? "15 minutes" : "15-20 minutes",
+          source: "Yahoo Finance (yfinance)"
+        });
+
+        setStockData(result.data);
+        setLastFetched(new Date(result.timestamp));
+
+        // Update stock price in state
+        if (result.data.length > 1) {
+          const latest = result.data[0];
+          const previous = result.data[1];
+
+          setStockPrices(prevPrices => ({
+            ...prevPrices,
+            [stockSymbol]: {
+              price: latest.Close,
+              change: latest.Close - previous.Close,
+              changePercent: ((latest.Close - previous.Close) / previous.Close) * 100,
+              timestamp: result.timestamp
+            }
+          }));
+        }
+      } else {
+        // Handle error case
+        setError(result.error || 'No data available');
+        setStockData([]);
+      }
+    } catch (err) {
+      console.error('Error details:', err);
+      setStockData([]);
+      setError(`Failed to fetch data: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    symbol,
+    chartInterval,
+    useDateRange,
+    startDate,
+    endDate,
+    chartPeriod,
+    fetchStock,
+    isIndonesianStock
+  ]);
 
   // Effect for window resize listener with debounce
   useEffect(() => {
@@ -383,7 +456,8 @@ const StockAnalysisPage = ({
           !dropdownRef.current.contains(event.target) &&
           !event.target.closest('.enhanced-stock-item') &&
           !event.target.closest('.enhanced-stock-dropdown') &&
-          !event.target.closest('.stock-category-tabs')
+          !event.target.closest('.stock-category-tabs') &&
+          !inputGroupRef.current.contains(event.target)
       ) {
         setShowStocksList(false);
       }
@@ -397,76 +471,76 @@ const StockAnalysisPage = ({
 
   // Fetch stock prices for dropdown with optimized batch processing
   const fetchLatestPricesForCategory = useCallback(async (categoryIndex) => {
-  if (loadingPrices) return;
-  
-  setLoadingPrices(true);
-  
-  const stocks = stockCategories[categoryIndex].stocks;
-  const symbols = stocks.map(stock => stock.symbol);
-  
-  try {
-    // Using our preloadStockData function from useStockAPI
-    await preloadStockData(symbols, '1d', '5d');
+    if (loadingPrices) return;
     
-    // Mark this category as preloaded - gunakan setTimeout untuk mencegah loop update
-    setTimeout(() => {
-      setPreloadedCategories(prev => ({
-        ...prev,
-        [categoryIndex]: true
-      }));
-    }, 0);
+    setLoadingPrices(true);
     
-  } catch (error) {
-    console.error("Failed to fetch category prices:", error);
-  } finally {
-    setLoadingPrices(false);
-  }
-}, [loadingPrices, preloadStockData, stockCategories]);
+    const stocks = stockCategories[categoryIndex].stocks;
+    const symbols = stocks.map(stock => stock.symbol);
+    
+    try {
+      // Using our preloadStockData function from useStockAPI
+      await preloadStockData(symbols, '1d', '5d');
+      
+      // Mark this category as preloaded - gunakan setTimeout untuk mencegah loop update
+      setTimeout(() => {
+        setPreloadedCategories(prev => ({
+          ...prev,
+          [categoryIndex]: true
+        }));
+      }, 0);
+      
+    } catch (error) {
+      console.error("Failed to fetch category prices:", error);
+    } finally {
+      setLoadingPrices(false);
+    }
+  }, [loadingPrices, preloadStockData, stockCategories]);
 
   // Fetch popular stocks data when needed
   const fetchLatestPricesForPopular = useCallback(async () => {
-  if (loadingPrices) return;
-  
-  setLoadingPrices(true);
-  
-  const symbols = popularStocks.map(stock => stock.symbol);
-  
-  try {
-    await preloadStockData(symbols, '1d', '5d');
+    if (loadingPrices) return;
     
-    // Gunakan setTimeout untuk menghindari loop update
-    setTimeout(() => {
-      setPreloadedCategories(prev => ({
-        ...prev,
-        popular: true
-      }));
-    }, 0);
-  } catch (error) {
-    console.error("Failed to fetch popular prices:", error);
-  } finally {
-    setLoadingPrices(false);
-  }
-}, [loadingPrices, preloadStockData, popularStocks]);
+    setLoadingPrices(true);
+    
+    const symbols = popularStocks.map(stock => stock.symbol);
+    
+    try {
+      await preloadStockData(symbols, '1d', '5d');
+      
+      // Gunakan setTimeout untuk menghindari loop update
+      setTimeout(() => {
+        setPreloadedCategories(prev => ({
+          ...prev,
+          popular: true
+        }));
+      }, 0);
+    } catch (error) {
+      console.error("Failed to fetch popular prices:", error);
+    } finally {
+      setLoadingPrices(false);
+    }
+  }, [loadingPrices, preloadStockData, popularStocks]);
 
   // Preload popular stocks data
   useEffect(() => {
-  // Preload only once when component mounts and if not already loaded
-  if (preloadedCategories.popular === undefined) {
-    // Slight delay to allow the main UI to render first
-    const timer = setTimeout(() => {
-      const symbols = popularStocks.map(stock => stock.symbol);
-      console.log('Preloading popular stocks data...');
-      preloadStockData(symbols, '1d', '5d')
-        .then(() => {
-          console.log('Popular stocks preloaded');
-          setPreloadedCategories(prev => ({ ...prev, popular: true }));
-        })
-        .catch(err => console.error('Failed to preload popular stocks:', err));
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }
-}, [preloadStockData, popularStocks, preloadedCategories.popular]);
+    // Preload only once when component mounts and if not already loaded
+    if (preloadedCategories.popular === undefined) {
+      // Slight delay to allow the main UI to render first
+      const timer = setTimeout(() => {
+        const symbols = popularStocks.map(stock => stock.symbol);
+        console.log('Preloading popular stocks data...');
+        preloadStockData(symbols, '1d', '5d')
+          .then(() => {
+            console.log('Popular stocks preloaded');
+            setPreloadedCategories(prev => ({ ...prev, popular: true }));
+          })
+          .catch(err => console.error('Failed to preload popular stocks:', err));
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [preloadStockData, popularStocks]);
   
   // Effect to load data when dropdown is shown
   useEffect(() => {
@@ -485,20 +559,23 @@ const StockAnalysisPage = ({
     fetchLatestPricesForPopular
   ]);
 
-  // Debounce function for search filtering
+  // Debounce function for search filtering - FIXED VERSION
   const filterStocks = useCallback((term) => {
+    // Set langsung searchTerm untuk memastikan tampilan terupdate
     setSearchTerm(term);
 
+    // Clear timeout sebelumnya jika ada
     if (filterTimeout) {
       clearTimeout(filterTimeout);
     }
 
+    // Set timeout baru
     const timeout = setTimeout(() => {
-      // Search logic is applied via the getFilteredStocks function
-      // No action needed here since state is already updated
+      // Log untuk debugging
       console.log(`Search applied for term: ${term}`);
     }, 300);
 
+    // Update state timeout
     setFilterTimeout(timeout);
   }, [filterTimeout]);
 
@@ -511,23 +588,38 @@ const StockAnalysisPage = ({
     };
   }, [filterTimeout]);
 
-  // Memoized filtered stocks list for performance
+  // Function untuk mereset filter pencarian
+  const resetSearchFilter = useCallback(() => {
+    setSearchTerm('');
+  }, []);
+
+  // Memoized filtered stocks list for performance - FIXED VERSION
   const filteredStocks = useMemo(() => {
-    if (!searchTerm) {
+    // Jika tidak ada pencarian, tampilkan kategori yang dipilih atau stocks populer
+    if (!searchTerm || searchTerm.trim() === '') {
       return [];
     }
 
-    const term = searchTerm.toLowerCase();
-
-    // Flatten all stocks and filter
-    const allStocks = stockCategories.reduce((acc, category) => {
-      return [...acc, ...category.stocks];
-    }, [...popularStocks]);
-
-    return allStocks.filter((stock, index, self) =>
-        (stock.symbol.toLowerCase().includes(term) ||
-            stock.name.toLowerCase().includes(term)) &&
-        index === self.findIndex(s => s.symbol === stock.symbol)
+    const term = searchTerm.toLowerCase().trim();
+    
+    // Flatten semua stocks dan filter
+    const allStocks = [
+      ...popularStocks,
+      ...stockCategories.flatMap(category => category.stocks)
+    ];
+    
+    // Hilangkan duplikat berdasarkan symbol
+    const uniqueStocks = allStocks.reduce((unique, stock) => {
+      if (!unique.some(s => s.symbol === stock.symbol)) {
+        unique.push(stock);
+      }
+      return unique;
+    }, []);
+    
+    // Filter berdasarkan term
+    return uniqueStocks.filter(stock => 
+      stock.symbol.toLowerCase().includes(term) || 
+      stock.name.toLowerCase().includes(term)
     );
   }, [searchTerm, stockCategories, popularStocks]);
 
@@ -541,9 +633,41 @@ const StockAnalysisPage = ({
       setShowStocksList(false);
     } else if (e.key === 'ArrowDown' && showStocksList) {
       e.preventDefault();
-      // Logic for keyboard navigation could go here
+      // Focus ke elemen pertama dalam dropdown jika ada
+      const firstItem = dropdownRef.current?.querySelector('.enhanced-stock-item');
+      if (firstItem) {
+        firstItem.focus();
+      }
     }
   }, [symbol, showStocksList, memoizedFetchStockData]);
+
+  // Handle dropdown item keyboard navigation
+  const handleDropdownKeyDown = useCallback((e, stockSymbol) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleStockSelect(stockSymbol);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowStocksList(false);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const currentItem = e.target;
+      const prevItem = currentItem.previousElementSibling;
+      if (prevItem) {
+        prevItem.focus();
+      } else {
+        // If no previous item, go back to search input
+        symbolInputRef.current.focus();
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const currentItem = e.target;
+      const nextItem = currentItem.nextElementSibling;
+      if (nextItem) {
+        nextItem.focus();
+      }
+    }
+  }, []);
 
   // Handle selection from dropdown
   const handleStockSelect = useCallback((selectedSymbol) => {
@@ -556,6 +680,9 @@ const StockAnalysisPage = ({
     // Close dropdown immediately for better UX
     setShowStocksList(false);
 
+    // Reset search term
+    resetSearchFilter();
+
     // Update the symbol state
     setSymbol(selectedSymbol);
 
@@ -564,7 +691,7 @@ const StockAnalysisPage = ({
 
     // Fetch data immediately
     memoizedFetchStockData(selectedSymbol);
-  }, [memoizedFetchStockData, navigate]);
+  }, [memoizedFetchStockData, navigate, resetSearchFilter]);
 
   // Set up real-time updates for active symbol
   useInterval(() => {
@@ -593,6 +720,10 @@ const StockAnalysisPage = ({
       <div
         className="enhanced-stock-item"
         onClick={() => handleStockSelect(stock.symbol)}
+        onKeyDown={(e) => handleDropdownKeyDown(e, stock.symbol)}
+        tabIndex="0"
+        role="option"
+        aria-selected="false"
       >
         <div className="stock-item-content">
           <div className="stock-item-info">
@@ -628,18 +759,11 @@ const StockAnalysisPage = ({
 
   // Memoized welcome screen to prevent unnecessary re-renders
   const WelcomeScreen = React.memo(() => (
-    <div className="welcome-screen" style={{
-      textAlign: 'center',
-      padding: '40px 20px',
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      margin: '20px 0'
-    }}>
+    <div className="welcome-screen">
       <div style={{
         fontSize: '60px',
         marginBottom: '20px',
-        color: '#2563EB' // Warna biru yang lebih nyaman sesuai dengan rekomendasi sebelumnya
+        color: '#10B981' // Warna hijau sesuai tema
       }}>
         <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" viewBox="0 0 16 16">
           <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
@@ -669,10 +793,10 @@ const StockAnalysisPage = ({
         marginTop: '20px'
       }}>
         {[
-          { symbol: 'BBCA.JK', color: '#2563EB' }, // Biru
-          { symbol: '^JKSE', color: '#6366F1' },   // Ungu-biru
-          { symbol: 'ASII.JK', color: '#8B5CF6' }, // Ungu
-          { symbol: 'TLKM.JK', color: '#3B82F6' }  // Biru muda
+          { symbol: 'BBCA.JK', color: '#10B981' }, // Hijau sesuai tema
+          { symbol: '^JKSE', color: '#0D9488' },   // Hijau lebih gelap
+          { symbol: 'ASII.JK', color: '#14B8A6' }, // Hijau tosca
+          { symbol: 'TLKM.JK', color: '#059669' }  // Hijau tua
         ].map((item, idx) => (
           <button
             key={item.symbol}
@@ -695,9 +819,27 @@ const StockAnalysisPage = ({
     </div>
   ));
 
+  // Get Current categories
+  const getCurrentCategories = () => {
+    // Jika screen sangat kecil, tampilkan hanya 2 kategori paling populer
+    if (windowWidth < 480) {
+      return stockCategories.slice(0, 3);
+    }
+    // Jika mobile, tampilkan 3 kategori
+    if (windowWidth < 768) {
+      return stockCategories.slice(0, 4);
+    }
+    // Jika layar ukuran sedang, tampilkan 6 kategori
+    if (windowWidth < 1200) {
+      return stockCategories.slice(0, 6);
+    }
+    // Untuk layar besar tampilkan semua kategori
+    return stockCategories;
+  };
+
   return (
     <div className="app-content">
-      {/* DevNoticeModal diperbarui sesuai dengan HomePage */}
+      {/* DevNoticeModal */}
       <DevNoticeModal 
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
@@ -714,7 +856,7 @@ const StockAnalysisPage = ({
         <div className="search-container">
           {/* Stock Selector UI */}
           <div className="stock-selector-container">
-            <div className="input-group" style={{ position: 'relative' }} ref={dropdownRef}>
+            <div className="input-group dropdown-container" ref={inputGroupRef}>
               <label className="input-label">Kode Saham</label>
               <div className="enhanced-stock-input-wrapper">
                 <input
@@ -722,13 +864,20 @@ const StockAnalysisPage = ({
                   className="stock-input"
                   value={symbol}
                   onChange={(e) => {
-                    setSymbol(e.target.value);
-                    filterStocks(e.target.value);
-                    if (e.target.value) {
+                    const value = e.target.value;
+                    setSymbol(value);
+                    filterStocks(value);
+                    if (!showStocksList) {
                       setShowStocksList(true);
+                      // Update posisi dropdown saat input berubah
+                      setTimeout(updateDropdownPosition, 0);
                     }
                   }}
-                  onFocus={() => setShowStocksList(true)}
+                  onFocus={() => {
+                    setShowStocksList(true);
+                    // Update posisi dropdown saat input focus
+                    setTimeout(updateDropdownPosition, 0);
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Masukkan kode saham (contoh: BBCA.JK)"
                   ref={symbolInputRef}
@@ -738,6 +887,11 @@ const StockAnalysisPage = ({
                   onClick={(e) => {
                     e.preventDefault();
                     setShowStocksList(!showStocksList);
+                    // Update posisi dropdown saat toggle diklik
+                    if (!showStocksList) {
+                      resetSearchFilter();
+                      setTimeout(updateDropdownPosition, 0);
+                    }
                   }}
                   aria-label="Pilih saham dari daftar"
                   aria-expanded={showStocksList}
@@ -747,25 +901,39 @@ const StockAnalysisPage = ({
                 </button>
               </div>
 
-              {/* Dropdown Stock List */}
+              {/* Dropdown Stock List dengan posisi fixed */}
               {showStocksList && (
-                <div className="enhanced-stock-dropdown">
+                <div 
+                  className="enhanced-stock-dropdown" 
+                  style={{
+                    position: 'fixed',
+                    top: `${dropdownPosition.top}px`,
+                    left: `${dropdownPosition.left}px`,
+                    width: `${dropdownPosition.width}px`,
+                    maxHeight: isLargeScreen ? '600px' : 'calc(90vh - 70px)',
+                    zIndex: 9999,
+                  }}
+                  ref={dropdownRef}
+                  role="listbox"
+                >
                   {/* Tabs for categories */}
                   <div className="stock-category-tabs">
                     <button
                       className={selectedCategory === null ? 'active' : ''}
                       onClick={() => {
                         setSelectedCategory(null);
+                        resetSearchFilter();
                       }}
                     >
                       Populer
                     </button>
-                    {stockCategories.map((category, idx) => (
+                    {getCurrentCategories().map((category, idx) => (
                       <button
                         key={idx}
                         className={selectedCategory === idx ? 'active' : ''}
                         onClick={() => {
                           setSelectedCategory(idx);
+                          resetSearchFilter();
                         }}
                       >
                         {category.name}
@@ -776,11 +944,11 @@ const StockAnalysisPage = ({
                   {/* Search results */}
                   {searchTerm && (
                     <div className="search-results">
-                      <h4>Hasil Pencarian</h4>
+                      <h4>Hasil Pencarian "{searchTerm}"</h4>
                       <div className="stock-list">
                         {filteredStocks.length > 0 ? (
                           filteredStocks.map((stock, idx) => (
-                            <StockItem key={idx} stock={stock} category="search" />
+                            <StockItem key={`search-${stock.symbol}-${idx}`} stock={stock} category="search" />
                           ))
                         ) : (
                           <div className="no-results">
@@ -791,28 +959,30 @@ const StockAnalysisPage = ({
                     </div>
                   )}
 
-                  {/* Stock list based on selected category */}
-                  <div className="stock-list-container">
-                    {selectedCategory === null ? (
-                      <>
-                        <h4>Saham Populer</h4>
-                        <div className="stock-list">
-                          {popularStocks.map((stock, idx) => (
-                            <StockItem key={idx} stock={stock} category="populer" />
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h4>{stockCategories[selectedCategory].name}</h4>
-                        <div className="stock-list">
-                          {stockCategories[selectedCategory].stocks.map((stock, idx) => (
-                            <StockItem key={idx} stock={stock} category={stockCategories[selectedCategory].name} />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  {/* Stock list based on selected category - only show if no search term */}
+                  {!searchTerm && (
+                    <div className="stock-list-container">
+                      {selectedCategory === null ? (
+                        <>
+                          <h4>Saham Populer</h4>
+                          <div className="stock-list">
+                            {popularStocks.map((stock, idx) => (
+                              <StockItem key={`popular-${stock.symbol}-${idx}`} stock={stock} category="populer" />
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <h4>{stockCategories[selectedCategory].name}</h4>
+                          <div className="stock-list">
+                            {stockCategories[selectedCategory].stocks.map((stock, idx) => (
+                              <StockItem key={`category-${stock.symbol}-${idx}`} stock={stock} category={stockCategories[selectedCategory].name} />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1147,7 +1317,7 @@ const StockAnalysisPage = ({
               }}>
                 <span>Grafik Saham</span>
               </div>
-              <div className="data-card-body" style={{
+              <div className="data-card-body chart-container" style={{
                 padding: '0',
                 overflow: 'visible',
                 width: '100%'
@@ -1213,6 +1383,25 @@ const StockAnalysisPage = ({
         <p>
           Untuk data real-time yang sebenarnya, Anda perlu berlangganan API penyedia data keuangan premium.
         </p>
+      </div>
+
+      {/* Tambahkan tombol untuk menampilkan modal secara manual */}
+      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="btn"
+          style={{
+            backgroundColor: '#10B981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Lihat Status Pengembangan
+        </button>
       </div>
     </div>
   );

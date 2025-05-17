@@ -1,11 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   AreaChart, Area, ComposedChart, Line, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+import '../styles/StockChart.css'; // Import CSS khusus untuk StockChart
 
 const StockChart = ({ data, currencySymbol = 'Rp', chartType = 'composed' }) => {
   const [chartData, setChartData] = useState([]);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const chartContainerRef = useRef(null);
+  // Tambahkan state untuk tren harga
+  const [priceTrend, setPriceTrend] = useState('neutral'); // 'up', 'down', atau 'neutral'
+  
+  // Effect untuk resize handling
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   useEffect(() => {
     // Prepare and format data for the chart
@@ -77,6 +92,20 @@ const StockChart = ({ data, currencySymbol = 'Rp', chartType = 'composed' }) => 
       }
     }
     
+    // Determine overall trend by comparing first and last data points
+    if (chartReadyData.length >= 2) {
+      const firstClose = chartReadyData[0].close;
+      const lastClose = chartReadyData[chartReadyData.length - 1].close;
+      
+      if (lastClose > firstClose) {
+        setPriceTrend('up');
+      } else if (lastClose < firstClose) {
+        setPriceTrend('down');
+      } else {
+        setPriceTrend('neutral');
+      }
+    }
+    
     setChartData(chartReadyData);
   }, [data]);
 
@@ -85,8 +114,28 @@ const StockChart = ({ data, currencySymbol = 'Rp', chartType = 'composed' }) => 
     return <div className="chart-loading">No data available for chart</div>;
   }
 
-  // Define chart height based on available data
-  const chartHeight = Math.min(500, Math.max(300, chartData.length * 10));
+  // Define chart height based on available data and screen width
+  const getChartHeight = () => {
+    // Responsif untuk ukuran layar berbeda
+    if (windowWidth < 480) return 300;
+    if (windowWidth < 768) return 350;
+    
+    // Default height for larger screens
+    return Math.min(500, Math.max(350, chartData.length * 8));
+  };
+  
+  // Get min chart width based on data points
+  const getMinChartWidth = () => {
+    // More data points need more width to be readable
+    const dataPoints = chartData.length;
+    const baseWidth = 500; // Base minimum width
+    
+    // 20px per data point is a good rule of thumb for readability
+    const calculatedWidth = dataPoints * 20;
+    
+    // Use the larger of the two values
+    return Math.max(baseWidth, calculatedWidth);
+  };
 
   // Format price for tooltip
   const formatPrice = (value) => {
@@ -155,8 +204,19 @@ const StockChart = ({ data, currencySymbol = 'Rp', chartType = 'composed' }) => 
     return null;
   };
 
-  // Define chart colors and settings
-  const lineColor = '#2196F3'; // Blue line for closing price
+  // Define chart colors based on price trend
+  const getChartColor = () => {
+    switch(priceTrend) {
+      case 'up':
+        return '#10B981'; // Hijau sesuai tema untuk harga naik
+      case 'down':
+        return '#EF4444'; // Merah untuk harga turun
+      default:
+        return '#10B981'; // Default hijau
+    }
+  };
+  
+  const lineColor = getChartColor();
   const gridColor = '#eeeeee';
   
   // Determine min and max values for better visualization
@@ -180,214 +240,165 @@ const StockChart = ({ data, currencySymbol = 'Rp', chartType = 'composed' }) => 
     return value.toString();
   };
 
-  // Render different chart types based on props
-  if (chartType === 'area') {
-    return (
-      <div className="stock-chart-container">
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <AreaChart
-            data={chartData}
-            margin={{
-              top: 10,
-              right: 30,
-              left: 10,
-              bottom: 30,
-            }}
-          >
-            <defs>
-              <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={lineColor} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={lineColor} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-            />
-            <YAxis 
-              domain={[minClose, maxClose]}
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-              tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
-              width={80}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="close"
-              stroke={lineColor}
-              fill="url(#colorClose)"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+  // Wrapper component that ensures horizontal scrolling works on all devices
+  return (
+    <div className="stock-chart-outer-container">
+      <div ref={chartContainerRef} className="stock-chart-container">
+        <div className={`stock-chart-wrapper ${priceTrend}`} style={{ minWidth: getMinChartWidth() }}>
+          {/* Render different chart types based on props */}
+          {chartType === 'area' ? (
+            <ResponsiveContainer width="100%" height={getChartHeight()}>
+              <AreaChart
+                data={chartData}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 10,
+                  bottom: 30,
+                }}
+              >
+                <defs>
+                  <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={lineColor} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={lineColor} stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  height={50}
+                  minTickGap={windowWidth < 768 ? 20 : 40}
+                />
+                <YAxis 
+                  domain={[minClose, maxClose]}
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
+                  width={80}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="close"
+                  stroke={lineColor}
+                  fill="url(#colorClose)"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : chartType === 'line' ? (
+            <ResponsiveContainer width="100%" height={getChartHeight()}>
+              <ComposedChart
+                data={chartData}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 10,
+                  bottom: 30,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  height={50}
+                  minTickGap={windowWidth < 768 ? 20 : 40}
+                />
+                <YAxis 
+                  domain={[minClose, maxClose]}
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
+                  width={80}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            // Default chart type: composed chart with line + volume bars
+            <ResponsiveContainer width="100%" height={getChartHeight()}>
+              <ComposedChart
+                data={chartData}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 10,
+                  bottom: 30,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  height={50}
+                  minTickGap={windowWidth < 768 ? 20 : 40}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  domain={[minClose, maxClose]}
+                  tick={{ fontSize: 12, fill: '#666' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
+                  width={80}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tickFormatter={volumeFormatter}
+                  domain={[0, maxVolume * 1.2]}
+                  tick={{ fontSize: 12, fill: '#888' }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
+                  width={60}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Bar
+                  yAxisId="right"
+                  dataKey="volume"
+                  name="Volume"
+                  fill={priceTrend === 'down' ? "rgba(239, 68, 68, 0.3)" : "rgba(158, 158, 158, 0.5)"}
+                  fillOpacity={0.6}
+                  barSize={windowWidth < 768 ? 3 : 5}
+                  strokeWidth={0}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="close"
+                  name="Close"
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
-    );
-  } else if (chartType === 'line') {
-    return (
-      <div className="stock-chart-container">
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <ComposedChart
-            data={chartData}
-            margin={{
-              top: 10,
-              right: 30,
-              left: 10,
-              bottom: 30,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-            />
-            <YAxis 
-              domain={[minClose, maxClose]}
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-              tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
-              width={80}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="close"
-              stroke={lineColor}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  } else {
-    // Default chart type: composed chart with line + volume bars
-    return (
-      <div className="stock-chart-container">
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <ComposedChart
-            data={chartData}
-            margin={{
-              top: 10,
-              right: 30,
-              left: 10,
-              bottom: 30,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-            />
-            <YAxis 
-              yAxisId="left"
-              domain={[minClose, maxClose]}
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-              tickFormatter={(value) => `${currencySymbol} ${value.toLocaleString('id-ID')}`}
-              width={80}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickFormatter={volumeFormatter}
-              domain={[0, maxVolume * 1.2]}
-              tick={{ fontSize: 12, fill: '#888' }}
-              tickLine={{ stroke: '#ccc' }}
-              axisLine={{ stroke: '#ccc' }}
-              width={60}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Bar
-              yAxisId="right"
-              dataKey="volume"
-              name="Volume"
-              fill="rgba(158, 158, 158, 0.5)"
-              fillOpacity={0.6}
-              barSize={5}
-              strokeWidth={0}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="close"
-              name="Close"
-              stroke={lineColor}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-
-        <style jsx>{`
-          .stock-chart-container {
-            width: 100%;
-            overflow: visible;
-            border-radius: 0 0 8px 8px;
-            padding: 15px 0;
-          }
-
-          .custom-tooltip {
-            background-color: rgba(255, 255, 255, 0.95);
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-            font-size: 12px;
-            min-width: 200px;
-          }
-
-          .tooltip-date {
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 4px;
-          }
-
-          .tooltip-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            grid-gap: 4px;
-          }
-
-          .tooltip-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          .tooltip-row span:first-child {
-            font-weight: 500;
-            margin-right: 10px;
-            color: #555;
-          }
-
-          .positive-change {
-            color: #4CAF50;
-          }
-
-          .negative-change {
-            color: #E53935;
-          }
-        `}</style>
-      </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default StockChart;

@@ -177,7 +177,7 @@
   
   .footer-content {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 20px;
   }
   
   .footer-section.about {
@@ -185,8 +185,7 @@
   }
   
   .footer-section {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 20px;
+    padding-right: 0;
   }
   
   .footer-section:last-child {
@@ -194,16 +193,13 @@
   }
 }
 
-@media (max-width: 576px) {
-  .footer {
-    padding: 30px 0 15px;
+@media screen and (max-width: 576px) {
+  .footer-container {
+    padding: 20px 15px;
   }
   
-  .footer-logo h2 {
-    font-size: 1.3rem;
-  }
-  
-  .footer-section h3 {
-    font-size: 1.1rem;
+  .footer-bottom p {
+    font-size: 12px;
+    text-align: center;
   }
 }

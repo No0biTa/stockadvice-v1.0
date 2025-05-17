@@ -159,3 +159,24 @@ body.modal-open {
   position: fixed; /* Mencegah scroll sama sekali */
   width: 100%; /* Full width */
 }
+
+@media screen and (max-width: 576px) {
+  .dev-notice-modal {
+    width: 90%;
+    padding: 15px;
+    margin: 10% auto;
+  }
+  
+  .dev-notice-header h2 {
+    font-size: 18px;
+  }
+  
+  .dev-notice-content p {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  
+  .dev-notice-button {
+    width: 100%;
+  }
+}

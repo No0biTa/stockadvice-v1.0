@@ -37,23 +37,29 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 15px;
+  margin-bottom: 15px;
 }
 
-/* Stock selector styling */
+/* Perbaikan untuk button Ambil Data dan layout form */
 .stock-selector-container {
   display: flex;
-  flex: 1;
+  flex-wrap: wrap; /* Tetapkan flex-wrap tetapi dengan perbaikan lainnya */
   gap: 10px;
   align-items: flex-start;
-  flex-wrap: wrap;
+  width: 100%;
+  position: relative;
 }
 
+/* Perbaikan untuk input group dan input field */
 .input-group {
   position: relative;
   flex: 1;
   min-width: 200px;
+  max-width: none; /* Hapus max-width yang membatasi */
+  width: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .input-label {
@@ -61,11 +67,15 @@
   margin-bottom: 8px;
   font-weight: 500;
   color: var(--text-dark);
+  font-size: 14px;
 }
 
+/* Container untuk input dan tombol pilih */
 .enhanced-stock-input-wrapper {
   display: flex;
   width: 100%;
+  height: 42px;
+  position: relative;
 }
 
 .stock-input {
@@ -75,12 +85,34 @@
   border-radius: 6px 0 0 6px;
   font-size: 14px;
   color: var(--text-dark);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .stock-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Pastikan UI tetap konsisten */
+.search-results {
+  padding: 15px;
+}
+
+.search-results h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.no-results {
+  padding: 20px 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .dropdown-toggle-improved {
@@ -94,10 +126,24 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
+  height: 100%;
+  min-width: 80px;
+  justify-content: center;
 }
 
 .dropdown-toggle-improved:hover {
   background-color: var(--primary-dark);
+}
+
+/* Perbaikan untuk tombol Ambil Data */
+.fetch-button {
+  height: 42px;
+  white-space: nowrap;
+  align-self: flex-end; /* Posisikan sejajar dengan input */
+  margin-top: auto; /* Jika ada label, button akan sejajar dengan input */
+  min-width: 110px;
+  flex-shrink: 0; /* Cegah tombol mengecil */
+  margin-bottom: 0; /* Hapus margin bottom yang mungkin ada */
 }
 
 /* Button styling */
@@ -113,7 +159,7 @@
 
 .btn-primary {
   background-color: var(--primary-color);
-  color: white;
+    color: white;
 }
 
 .btn-primary:hover {
@@ -129,24 +175,53 @@
   background-color: #0D9488; /* Darker teal */
 }
 
-.fetch-button {
-  white-space: nowrap;
-}
-
-/* Enhanced stock dropdown */
+/* Perbaikan untuk dropdown list */
 .enhanced-stock-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  position: fixed !important;
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  z-index: 100;
-  max-height: 400px;
-  overflow-y: auto;
+  z-index: 9999 !important;
   border: 1px solid var(--border-color);
-  margin-top: 5px;
+  overflow: auto;
+  max-height: calc(90vh - 70px);
+  width: 100% !important; /* Pastikan lebar dropdown sama dengan input group */
+  max-width: 450px; /* Batasi lebar maksimal dropdown */
+  margin-top: 0 !important;
+}
+
+/* Style untuk navbar - tambahkan untuk memastikan z-index navbar lebih tinggi */
+header, nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Style untuk mencegah scroll saat dropdown terbuka */
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* Pastikan modal itu sendiri tidak blur */
+.modal-wrapper {
+  filter: none !important;
+  pointer-events: all !important;
+  z-index: 1100; /* Nilai z-index lebih tinggi dari dropdown */
+}
+
+/* Tambahkan efek blur dan disable scrolling saat modal aktif */
+.blur-background {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  transition: filter 0.3s ease-out;
+}
+
+/* Tambahkan class baru untuk container dropdown agar bisa dijadikan referensi posisi */
+.dropdown-container {
+  position: relative;
 }
 
 /* Category tabs */
@@ -157,6 +232,22 @@
   padding: 0;
   background-color: #f5f7fa;
   border-radius: 8px 8px 0 0;
+  scrollbar-width: thin;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stock-category-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.stock-category-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stock-category-tabs::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
 .stock-category-tabs button {
@@ -183,6 +274,44 @@
   right: 0;
   height: 3px;
   background-color: var(--primary-color);
+}
+
+/* Styling untuk container grafik pada StockAnalysisPage */
+.chart-container {
+  width: 100%;
+  overflow: visible !important;
+  margin: 0;
+  padding: 0;
+}
+
+.data-card {
+  overflow: visible !important;
+}
+
+.data-card-body {
+  overflow: visible !important;
+}
+
+/* Responsiveness untuk tabel data */
+.data-card-body.chart-container {
+  overflow-x: visible !important;
+}
+
+/* Tabel data juga dibuat scrollable */
+.data-card-body {
+  overflow-x: auto !important;
+}
+
+.stock-table {
+  min-width: 600px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 0;
+    margin: 0;
+  }
 }
 
 /* Stock list */
@@ -223,6 +352,7 @@
 .stock-item-info {
   display: flex;
   flex-direction: column;
+  max-width: 70%; /* Batas lebar untuk informasi stock */
 }
 
 .stock-item-symbol {
@@ -230,13 +360,22 @@
   color: var(--text-dark);
 }
 
+/* Perbaikan untuk mengatasi jika text overflow pada dropdown */
 .stock-item-name {
   font-size: 13px;
   color: #64748b;
+  white-space: normal; /* Allow text to wrap */
+  word-break: break-word; /* Break long words if needed */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
 }
 
 .stock-item-price {
   text-align: right;
+  min-width: 30%; /* Berikan lebar minimum untuk harga */
 }
 
 .price-value {
@@ -403,4 +542,546 @@ input:checked + .toggle-slider:before {
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 18px;
+}
+
+/* Tambahkan style yang hilang untuk filter */
+
+/* Perbaikan untuk bagian filters */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: var(--text-dark);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: white;
+  font-size: 14px;
+  color: var(--text-dark);
+  min-width: 120px;
+}
+
+/* Checkbox styling */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  margin-right: 15px;
+}
+
+.checkbox-container input[type="checkbox"] {
+  accent-color: var(--primary-color);
+  width: 16px;
+  height: 16px;
+}
+
+.checkbox-container label {
+  font-size: 14px;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+/* Date selector styling */
+.date-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.date-group label {
+  font-size: 14px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.date-group input[type="date"] {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+/* Toggle chart button */
+.toggle-chart-btn {
+  background-color: #f3f4f6;
+  color: var(--text-dark);
+  transition: all 0.2s;
+  font-weight: normal;
+}
+
+.toggle-chart-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* Toggle container */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 10px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.refresh-select {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: white;
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+/* Styling untuk kotak pencarian di dalam dropdown */
+.dropdown-search-container {
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background-color: #f8fafc;
+  z-index: 10; /* Pastikan search box selalu di atas konten dropdown */
+  display: none;
+}
+
+.dropdown-search-input {
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  outline: none;
+}
+
+.dropdown-search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.dropdown-search-clear {
+  position: absolute;
+  right: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.dropdown-search-clear:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #334155;
+}
+
+/* Update styling untuk hasil pencarian */
+.search-results {
+  padding: 15px;
+}
+
+.search-results h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.no-results {
+  padding: 20px 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Accessibility dan fokus untuk navigasi keyboard */
+.enhanced-stock-item:focus {
+  outline: 2px solid var(--primary-color);
+  background-color: #f0f9ff;
+}
+
+/* Loading state */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Stock skeleton loading */
+.price-skeleton {
+  width: 100%;
+  height: 16px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Container luar untuk memastikan scrolling horizontal berfungsi */
+.stock-chart-outer-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Container utama dengan scrolling */
+.stock-chart-container {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; /* Untuk scrolling halus di iOS */
+  position: relative;
+  margin-bottom: 5px;
+  padding: 15px 0;
+}
+
+/* Wrapper untuk memastikan chart memiliki minimal width */
+.stock-chart-wrapper {
+  min-width: 500px; /* Minimal width untuk grafik */
+  height: 100%;
+  position: relative;
+}
+
+/* Styling untuk tren harga berbeda */
+.stock-chart-wrapper.up .recharts-line-curve {
+  stroke: var(--positive-color); /* Hijau untuk tren naik */
+}
+
+.stock-chart-wrapper.down .recharts-line-curve {
+  stroke: var(--negative-color); /* Merah untuk tren turun */
+}
+
+.stock-chart-wrapper.down .recharts-area-curve {
+  stroke: var(--negative-color); /* Merah untuk tren turun (area chart) */
+}
+
+.stock-chart-wrapper.down .recharts-area {
+  fill: rgba(239, 68, 68, 0.1); /* Merah transparan untuk area chart */
+}
+
+.stock-chart-wrapper.down defs linearGradient stop {
+  stop-color: var(--negative-color) !important; /* Merah untuk gradient pada tren turun */
+}
+
+/* Scrollbar styling untuk browser yang mendukung */
+.stock-chart-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.stock-chart-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.stock-chart-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.stock-chart-container::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Scroll indicator untuk menunjukkan bahwa grafik bisa di-scroll */
+.stock-chart-outer-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.7));
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.8;
+}
+
+/* Hapus indicator scroll jika sudah scroll ke kanan */
+.stock-chart-container::-webkit-scrollbar-thumb:active + .stock-chart-outer-container::after,
+.stock-chart-container:hover + .stock-chart-outer-container::after {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Responsive layout improvements */
+@media (max-width: 768px) {
+  .search-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .stock-selector-container {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .input-group {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .fetch-button {
+    width: 100%;
+    margin-top: 10px;
+    white-space: nowrap;
+    height: 42px;
+    min-width: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+  }
+  
+  .filters-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-group {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .filter-group select {
+    width: 100%;
+  }
+  
+  .date-selector {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .date-group {
+    width: 100%;
+  }
+  
+  .date-group input[type="date"] {
+    width: 100%;
+  }
+  
+  .toggle-container {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+}
+
+/* Tambahan untuk versi mobile yang lebih kecil */
+@media (max-width: 576px) {
+  .stock-table th, 
+  .stock-table td {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .enhanced-stock-dropdown {
+    width: 90% !important;
+    left: 5% !important;
+  }
+  
+  .stock-category-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .stock-category-tabs button {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .welcome-screen {
+    padding: 25px 15px;
+  }
+  
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Perbaikan untuk tampilan stock-dropdown di layar kecil */
+@media (max-width: 480px) {
+  .enhanced-stock-dropdown {
+    width: 95% !important;
+    left: 2.5% !important;
+    max-height: 80vh !important;
+  }
+  
+  .stock-item-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .stock-item-price {
+    text-align: left;
+    margin-top: 5px;
+    width: 100%;
+  }
+  
+  .price-change {
+    justify-content: flex-start;
+  }
+  
+  .stock-item-symbol {
+    font-size: 15px;
+  }
+  
+  .stock-item-name {
+    font-size: 12px;
+  }
+}
+
+/* Layout kompak untuk tablet */
+@media (max-width: 992px) and (min-width: 769px) {
+  .stock-selector-container {
+    flex-wrap: nowrap;
+    align-items: flex-end;
+  }
+  
+  .input-group {
+    max-width: calc(100% - 130px);
+  }
+  
+  .fetch-button {
+    min-width: 100px;
+    padding: 0 12px;
+    margin-left: 10px;
+  }
+}
+
+/* Responsive design untuk layar besar */
+@media (min-width: 1400px) {
+  .app-content {
+    max-width: 1320px; /* Lebih lebar untuk layar besar */
+    padding: 30px; /* Padding yang lebih besar */
+  }
+  
+  .card {
+    padding: 25px; /* Card dengan padding lebih besar */
+    margin-bottom: 25px;
+  }
+  
+  .search-container {
+    gap: 20px; /* Gap lebih besar */
+  }
+  
+  .input-group {
+    max-width: 500px; /* Input lebih lebar pada layar besar */
+  }
+  
+  .stock-item-symbol {
+    font-size: 16px; /* Font lebih besar */
+  }
+  
+  .stock-item-name {
+    font-size: 14px; /* Font lebih besar */
+  }
+  
+  .fetch-button {
+    padding: 0 20px;
+    font-size: 15px;
+    min-width: 140px;
+  }
+  
+  .data-card-header {
+    padding: 20px !important;
+    font-size: 18px !important;
+  }
+  
+  .stock-table th,
+  .stock-table td {
+    padding: 15px 20px;
+    font-size: 15px;
+  }
+  
+  /* Buat kolom stock list lebih optimal di layar besar */
+  .stock-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Header untuk grafik dan data lebih besar */
+  .data-card-header span {
+    font-size: 18px;
+  }
+  
+  .enhanced-stock-dropdown {
+    max-width: 500px !important;
+  }
+}
+
+/* Tambahan untuk screen ultra-large */
+@media (min-width: 1800px) {
+  .app-content {
+    max-width: 1600px;
+    padding: 40px;
+  }
+  
+  /* Grid 3 kolom untuk layar ultra-besar */
+  .stock-list {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .enhanced-stock-dropdown {
+    max-width: 600px !important;
+  }
+  
+  .input-group {
+    max-width: 600px;
+  }
+  
+  .fetch-button {
+    min-width: 160px;
+    font-size: 16px;
+  }
 }

@@ -66,7 +66,7 @@ const DevNoticeModal = ({ isOpen, onClose }) => {
           <h2>Perhatian</h2>
         </div>
         <div className="dev-notice-content">
-          <p>Website <strong>StockAdvice</strong> masih dalam tahap pengembangan dan perbaikan.</p>
+          <p>Website <strong>StockAdvice v1.0</strong> masih dalam tahap pengembangan dan perbaikan.</p>
           <p>Beberapa fitur mungkin belum berfungsi dengan sempurna atau masih dalam proses implementasi.</p>
           <p>Terima kasih atas pengertian dan kesabaran Anda.</p>
         </div>
