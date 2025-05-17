@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import Loader from './Loader';
 import useStockAPI from '../components/hooks/useStockAPI';
-import DevNoticeModal from './DevNoticeModal'; // Import DevNoticeModal
+import DevNoticeModal from './DevNoticeModal';
 import '../styles/StockAnalysisPage.css';
 
 // Lazy loading StockChart
@@ -116,6 +116,8 @@ const StockAnalysisPage = ({
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTimeout, setFilterTimeout] = useState(null);
+  const [isScrollingTabs, setIsScrollingTabs] = useState(false);
+  const scrollTimeout = useRef();
 
   // State for storing last prices of stocks
   const [stockPrices, setStockPrices] = useState({});
@@ -159,7 +161,7 @@ const StockAnalysisPage = ({
   });
 
   // Tambahkan state dan ref untuk dropdown positioning
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, bottom: 'auto', left: 0, width: 0 });
   const inputGroupRef = useRef(null);
   const symbolInputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -176,44 +178,64 @@ const StockAnalysisPage = ({
 
   // Calculate if we're in mobile view
   const isMobileView = windowWidth < 768;
+  const isSmallMobile = windowWidth < 576;
   const isLargeScreen = windowWidth >= 1400;
+
+  // Handle tab scroll for mobile
+  const handleTabScroll = () => {
+    setIsScrollingTabs(true);
+    clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      setIsScrollingTabs(false);
+    }, 150);
+  };
 
   // Fungsi untuk update posisi dropdown - IMPROVED VERSION
   const updateDropdownPosition = () => {
     if (inputGroupRef.current && showStocksList) {
-      const rect = inputGroupRef.current.getBoundingClientRect();
-      const navbarElement = document.querySelector('header, nav');
-      const navbarHeight = navbarElement ? navbarElement.getBoundingClientRect().height : 60;
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
       
-      // Hitung posisi dropdown
-      let topPosition = rect.bottom;
-      let leftPosition = rect.left;
-      let dropdownWidth = Math.min(450, rect.width); // Batas maksimal lebar dropdown
-      
-      // Periksa apakah dropdown akan berada di atas navbar
-      if (rect.top < navbarHeight) {
-        // Tempatkan dropdown relatif terhadap layar dan tambahkan offset navbar
-        topPosition = navbarHeight + 5; // 5px padding dari navbar
-      }
-      
-      // Untuk layar kecil, gunakan design yang lebih responsif
-      if (viewportWidth < 768) {
-        // Pada mobile, buat dropdown lebih lebar dan di tengah
-        dropdownWidth = Math.min(viewportWidth * 0.95, 450);
-        leftPosition = (viewportWidth - dropdownWidth) / 2;
+      // Untuk layar kecil, gunakan design bottom sheet
+      if (viewportWidth < 576) {
+        // Untuk mobile, gunakan layout bottom sheet
+        setDropdownPosition({
+          top: 'auto',
+          bottom: 10,
+          left: '2%',
+          width: '96%'
+        });
       } else {
-        // Pastikan dropdown tidak keluar dari layar
+        // Untuk layar yang lebih besar
+        const rect = inputGroupRef.current.getBoundingClientRect();
+        const navbarElement = document.querySelector('header, nav');
+        const navbarHeight = navbarElement ? navbarElement.getBoundingClientRect().height : 60;
+        
+        // Hitung posisi dropdown
+        let topPosition = rect.bottom;
+        let leftPosition = rect.left;
+        
+        // Batasi lebar dropdown
+        let dropdownWidth = Math.min(600, Math.max(320, rect.width));
+        
+        // Pastikan dropdown tidak keluar dari viewport
         if (leftPosition + dropdownWidth > viewportWidth) {
           leftPosition = Math.max(10, viewportWidth - dropdownWidth - 10);
         }
+        
+        // Pastikan posisi top tidak terlalu rendah
+        const maxTop = viewportHeight - 100;
+        if (topPosition > maxTop) {
+          topPosition = rect.top - 320; // Posisikan di atas input
+        }
+        
+        setDropdownPosition({
+          top: topPosition,
+          bottom: 'auto',
+          left: leftPosition,
+          width: dropdownWidth
+        });
       }
-      
-      setDropdownPosition({
-        top: topPosition,
-        left: leftPosition,
-        width: dropdownWidth
-      });
     }
   };
 
@@ -245,6 +267,17 @@ const StockAnalysisPage = ({
       document.body.classList.remove('no-scroll');
     }
   }, [showStocksList]);
+
+  // Tambahkan event listener untuk scroll pada tabs
+  useEffect(() => {
+    const tabsElement = document.querySelector('.stock-category-tabs');
+    if (tabsElement && windowWidth < 768) {
+      tabsElement.addEventListener('scroll', handleTabScroll);
+      return () => {
+        tabsElement.removeEventListener('scroll', handleTabScroll);
+      };
+    }
+  }, [windowWidth, showStocksList]);
 
   // Modifikasi useEffect untuk mengecek modal saat mount
   useEffect(() => {
@@ -901,44 +934,68 @@ const StockAnalysisPage = ({
                 </button>
               </div>
 
+              {/* Backdrop untuk mobile */}
+              {showStocksList && isSmallMobile && (
+                <div className="dropdown-backdrop" onClick={() => setShowStocksList(false)}></div>
+              )}
+
               {/* Dropdown Stock List dengan posisi fixed */}
               {showStocksList && (
                 <div 
                   className="enhanced-stock-dropdown" 
                   style={{
                     position: 'fixed',
-                    top: `${dropdownPosition.top}px`,
-                    left: `${dropdownPosition.left}px`,
-                    width: `${dropdownPosition.width}px`,
-                    maxHeight: isLargeScreen ? '600px' : 'calc(90vh - 70px)',
+                    top: dropdownPosition.top !== 'auto' ? `${dropdownPosition.top}px` : 'auto',
+                    bottom: dropdownPosition.bottom !== 'auto' ? `${dropdownPosition.bottom}px` : 'auto',
+                    left: typeof dropdownPosition.left === 'string' ? dropdownPosition.left : `${dropdownPosition.left}px`,
+                    width: typeof dropdownPosition.width === 'string' ? dropdownPosition.width : `${dropdownPosition.width}px`,
+                    maxHeight: isLargeScreen ? '600px' : 'calc(80vh)',
                     zIndex: 9999,
                   }}
                   ref={dropdownRef}
                   role="listbox"
                 >
-                  {/* Tabs for categories */}
-                  <div className="stock-category-tabs">
-                    <button
-                      className={selectedCategory === null ? 'active' : ''}
-                      onClick={() => {
-                        setSelectedCategory(null);
-                        resetSearchFilter();
-                      }}
+                  {/* Tombol Close untuk layar kecil */}
+                  {isSmallMobile && (
+                    <button 
+                      className="dropdown-close-button"
+                      onClick={() => setShowStocksList(false)}
+                      aria-label="Tutup dropdown"
                     >
-                      Populer
+                      ✕
                     </button>
-                    {getCurrentCategories().map((category, idx) => (
+                  )}
+
+                  {/* Tabs for categories */}
+                  <div className="stock-category-tabs-container">
+                    <div className="stock-category-tabs" onScroll={handleTabScroll}>
                       <button
-                        key={idx}
-                        className={selectedCategory === idx ? 'active' : ''}
+                        className={selectedCategory === null ? 'active' : ''}
                         onClick={() => {
-                          setSelectedCategory(idx);
+                          setSelectedCategory(null);
                           resetSearchFilter();
                         }}
                       >
-                        {category.name}
+                        Populer
                       </button>
-                    ))}
+                      {getCurrentCategories().map((category, idx) => (
+                        <button
+                          key={idx}
+                          className={selectedCategory === idx ? 'active' : ''}
+                          onClick={() => {
+                            setSelectedCategory(idx);
+                            resetSearchFilter();
+                          }}
+                        >
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
+                    {isMobileView && (
+                      <div className={`tab-scroll-indicator ${isScrollingTabs ? 'hidden' : ''}`}>
+                        <span>➔</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Search results */}
