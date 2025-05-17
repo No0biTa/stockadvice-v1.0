@@ -1,0 +1,209 @@
+/* Footer styling for StockAdvice platform */
+
+.footer {
+  background-color: #263238;
+  color: #e0e0e0;
+  padding: 60px 0 20px;
+  margin-top: 60px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+/* Footer logo styling */
+.footer-logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.footer-logo svg {
+  color: #4db6ac;
+  margin-right: 10px;
+  width: 24px;
+  height: 24px;
+}
+
+.footer-logo h2 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  align-items: center;
+}
+
+/* About section styling */
+.footer-section.about p {
+  color: #b0bec5;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+  background-color: rgba(77, 182, 172, 0.2);
+  color: #4db6ac;
+  transform: translateY(-3px);
+}
+
+/* Links section styling */
+.footer-section h3 {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.footer-section h3::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 40px;
+  background: linear-gradient(to right, #00897b, #4db6ac);
+}
+
+.footer-section ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 12px;
+}
+
+.footer-section ul li a {
+  color: #b0bec5;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.footer-section ul li a:hover {
+  color: #4db6ac;
+  padding-left: 5px;
+}
+
+/* Contact section styling */
+.footer-section.contact p {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  color: #b0bec5;
+  font-size: 0.95rem;
+}
+
+.contact-icon {
+  margin-right: 10px;
+  color: #4db6ac;
+  min-width: 16px;
+}
+
+/* Footer bottom styling */
+.footer-bottom {
+  text-align: center;
+}
+
+.footer-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+.footer-bottom p {
+  color: #b0bec5;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.footer-disclaimer {
+  font-size: 0.8rem;
+  color: #90a4ae;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+  }
+  
+  .footer-section.about {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 40px 0 20px;
+    margin-top: 40px;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  
+  .footer-section.about {
+    grid-column: span 1;
+  }
+  
+  .footer-section {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 20px;
+  }
+  
+  .footer-section:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .footer {
+    padding: 30px 0 15px;
+  }
+  
+  .footer-logo h2 {
+    font-size: 1.3rem;
+  }
+  
+  .footer-section h3 {
+    font-size: 1.1rem;
+  }
+}

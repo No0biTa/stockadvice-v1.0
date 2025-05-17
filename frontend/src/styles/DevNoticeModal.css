@@ -1,0 +1,161 @@
+/* Style untuk overlay */
+.dev-notice-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+  /* Hapus backdrop-filter dari sini karena akan diterapkan ke elemen lain */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+
+.blur-background {
+  filter: blur(5px);
+  transition: filter 0.3s ease;
+  pointer-events: none;
+}
+
+.modal-open-blur .app-content {
+  filter: blur(5px);
+  transition: filter 0.3s ease-out;
+  pointer-events: none; /* Disable interaksi dengan konten di belakang */
+}
+
+/* Style untuk modal */
+.dev-notice-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: modalFadeIn 0.3s ease-out forwards;
+  pointer-events: auto; /* Pastikan modal bisa diinteraksi */
+  position: relative; /* Untuk z-index */
+  z-index: 10000; 
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Header modal */
+.dev-notice-header {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  padding: 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-notice-header svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dev-notice-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Konten modal */
+.dev-notice-content {
+  padding: 25px;
+  font-size: 1rem;
+  color: #37474F;
+  line-height: 1.6;
+}
+
+.dev-notice-content p {
+  margin-bottom: 10px;
+}
+
+.dev-notice-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Checkbox */
+.dev-notice-checkbox {
+  display: flex;
+  align-items: center;
+  margin: 10px 25px 5px;
+}
+
+.dev-notice-checkbox input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.dev-notice-checkbox label {
+  color: #546e7a;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Button */
+.dev-notice-button {
+  display: block;
+  width: calc(100% - 50px);
+  margin: 10px auto 25px;
+  padding: 14px 20px;
+  background: linear-gradient(to right, #4db6ac, #00897b);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 137, 123, 0.2);
+}
+
+.dev-notice-button:hover {
+  background: linear-gradient(to right, #00897b, #00796b);
+  box-shadow: 0 6px 12px rgba(0, 137, 123, 0.3);
+}
+
+/* PENTING: Style untuk blur effect pada content */
+.blurred-content {
+  filter: blur(8px);
+  transition: filter 0.3s ease;
+  pointer-events: none; /* Mencegah interaksi dengan content ketika diblur */
+  touch-action: none; /* Dibutuhkan untuk perangkat mobile */
+  user-select: none; /* Tambahkan untuk mencegah user select */
+}
+
+/* Animasi modal */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styling untuk mencegah scroll */
+body.modal-open {
+  overflow: hidden !important;
+  margin: 0; /* Penting untuk mencegah jumpiness */
+  height: 100%; /* Memastikan height tetap 100% */
+  position: fixed; /* Mencegah scroll sama sekali */
+  width: 100%; /* Full width */
+}

@@ -1,0 +1,761 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
+import StockChart from './components/StockChart';
+import Loader from './components/Loader';
+import NavBar from './components/NavBar';
+import HomePage from './components/HomePage';
+import './App.css';
+
+// Daftar saham populer
+const popularStocks = [
+  { symbol: 'BBCA.JK', name: 'Bank Central Asia' },
+  { symbol: 'BBRI.JK', name: 'Bank Rakyat Indonesia' },
+  { symbol: 'BMRI.JK', name: 'Bank Mandiri' },
+  { symbol: 'TLKM.JK', name: 'Telkom Indonesia' },
+  { symbol: 'ASII.JK', name: 'Astra International' },
+  { symbol: 'UNVR.JK', name: 'Unilever Indonesia' },
+  { symbol: 'ICBP.JK', name: 'Indofood CBP' },
+  { symbol: 'INDF.JK', name: 'Indofood Sukses Makmur' },
+  { symbol: 'HMSP.JK', name: 'HM Sampoerna' },
+  { symbol: 'ANTM.JK', name: 'Aneka Tambang' }
+];
+
+// Data untuk kategori saham
+const stockCategories = [
+  {
+    name: 'Indeks',
+    stocks: [
+      { symbol: '^JKSE', name: 'IDX Composite' },
+      { symbol: '^IDXBASIC', name: 'IDX Basic Industry' },
+      { symbol: '^IDXINDUST', name: 'IDX Industrial' },
+      { symbol: '^IDXFINANCE', name: 'IDX Finance' },
+      { symbol: '^IDXENERGY', name: 'IDX Energy' }
+    ]
+  },
+  {
+    name: 'Perbankan',
+    stocks: [
+      { symbol: 'BBCA.JK', name: 'Bank Central Asia' },
+      { symbol: 'BBRI.JK', name: 'Bank Rakyat Indonesia' },
+      { symbol: 'BMRI.JK', name: 'Bank Mandiri' },
+      { symbol: 'BBNI.JK', name: 'Bank Negara Indonesia' },
+      { symbol: 'BJTM.JK', name: 'Bank Jatim' }
+    ]
+  },
+  {
+    name: 'Teknologi',
+    stocks: [
+      { symbol: 'GOTO.JK', name: 'GoTo Gojek Tokopedia' },
+      { symbol: 'BUKA.JK', name: 'Bukalapak' },
+      { symbol: 'TLKM.JK', name: 'Telkom Indonesia' },
+      { symbol: 'EXCL.JK', name: 'XL Axiata' },
+      { symbol: 'ISAT.JK', name: 'Indosat Ooredoo Hutchison' }
+    ]
+  },
+  {
+    name: 'Konsumer',
+    stocks: [
+      { symbol: 'UNVR.JK', name: 'Unilever Indonesia' },
+      { symbol: 'ICBP.JK', name: 'Indofood CBP' },
+      { symbol: 'INDF.JK', name: 'Indofood Sukses Makmur' },
+      { symbol: 'HMSP.JK', name: 'HM Sampoerna' },
+      { symbol: 'KLBF.JK', name: 'Kalbe Farma' }
+    ]
+  }
+];
+
+// Custom hook for interval functionality
+function useInterval(callback, delay) {
+  const savedCallback = useRef();
+
+  // Remember the latest callback
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval
+  useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+    if (delay !== null) {
+      const id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
+
+function App() {
+  // State for navigation
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' or 'stocks'
+  const [urlParams, setUrlParams] = useState(null);
+
+  // Check for URL parameters on component mount
+  useEffect(() => {
+    const handleNavigation = () => {
+      const path = window.location.pathname;
+      const searchParams = new URLSearchParams(window.location.search);
+      const symbolParam = searchParams.get('symbol');
+
+      if (path === '/stocks' || path.includes('/stocks')) {
+        setCurrentPage('stocks');
+        if (symbolParam) {
+          setUrlParams({ symbol: symbolParam });
+        }
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    // Initial navigation check
+    handleNavigation();
+
+    // Listen for popstate events (browser back/forward buttons)
+    window.addEventListener('popstate', handleNavigation);
+
+    return () => {
+      window.removeEventListener('popstate', handleNavigation);
+    };
+  }, []);
+
+  // Navigation function wrapped in useCallback
+  const navigate = useCallback((page, params = {}) => {
+    let url = page === 'home' ? '/' : `/${page}`;
+
+    // Add query parameters if provided
+    if (Object.keys(params).length > 0) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        searchParams.append(key, value);
+      });
+      url += `?${searchParams.toString()}`;
+    }
+
+    // Update browser history
+    window.history.pushState({}, '', url);
+
+    // Update state
+    setCurrentPage(page);
+    setUrlParams(params);
+  }, []);
+
+  // State variables for stock functionality
+  const [symbol, setSymbol] = useState(''); // Removed default symbol
+  const [stockData, setStockData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [currencySymbol, setCurrencySymbol] = useState('Rp');
+  const [realtime, setRealtime] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds by default
+  const [lastFetched, setLastFetched] = useState(null);
+  const [dataInfo, setDataInfo] = useState({
+    isRealtime: false,
+    delay: "15-20 minutes",
+    source: "Yahoo Finance"
+  });
+  const [showChart, setShowChart] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState('1mo');
+  const [chartInterval, setChartInterval] = useState('1d');
+  const [useDateRange, setUseDateRange] = useState(false);
+  const [chartType, setChartType] = useState('composed');
+  const [activeSymbol, setActiveSymbol] = useState(''); // Track currently displayed symbol
+
+  // State for dropdown and category management
+  const [showStocksList, setShowStocksList] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTimeout, setFilterTimeout] = useState(null);
+
+  // State for storing last prices of stocks
+  const [stockPrices, setStockPrices] = useState({});
+  const [loadingPrices, setLoadingPrices] = useState(false);
+
+  // State for tracking screen width
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  // Ref for input field to handle Enter key
+  const symbolInputRef = useRef(null);
+  // Ref for dropdown to handle clicks outside
+  const dropdownRef = useRef(null);
+
+  // Calculate default dates (6 months ago to current date)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const [startDate, setStartDate] = useState(formatDateForInput(sixMonthsAgo));
+  const [endDate, setEndDate] = useState(formatDateForInput(new Date()));
+
+  // Effect for window resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Effect to handle clicks outside of dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target) &&
+          !event.target.closest('.enhanced-stock-item') && // Don't close when clicking stock items
+          !event.target.closest('.enhanced-stock-dropdown') && // Don't close when clicking inside dropdown
+          !event.target.closest('.stock-category-tabs') // Don't close when clicking category tabs
+      ) {
+        setShowStocksList(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Calculate if we're in mobile view
+  const isMobileView = windowWidth < 768;
+
+  // Effect to fetch stock prices for dropdown
+  useEffect(() => {
+    // Fetch latest prices for stocks in selected category
+    const fetchLatestPricesForCategory = async (categoryIndex) => {
+      if (loadingPrices) return;
+
+      setLoadingPrices(true);
+
+      const stocks = stockCategories[categoryIndex].stocks;
+      const symbols = stocks.map(stock => stock.symbol);
+
+      try {
+        const promises = symbols.map(async (sym) => {
+          try {
+            const res = await axios.get("http://localhost:5000/stock", {
+              params: {
+                symbol: sym,
+                interval: '1d',
+                period: '5d'
+              }
+            });
+
+            if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 1) {
+              const latestData = res.data.data.sort((a, b) => {
+                const dateA = new Date(a.Date || a.Datetime);
+                const dateB = new Date(b.Date || b.Datetime);
+                return dateB - dateA; // Descending order
+              });
+
+              const latest = latestData[0];
+              const previous = latestData[1];
+
+              return {
+                symbol: sym,
+                price: latest.Close,
+                change: latest.Close - previous.Close,
+                changePercent: ((latest.Close - previous.Close) / previous.Close) * 100
+              };
+            }
+            return { symbol: sym, price: null, change: null, changePercent: null };
+          } catch (error) {
+            return { symbol: sym, price: null, change: null, changePercent: null };
+          }
+        });
+
+        const results = await Promise.all(promises);
+
+        const newPrices = {};
+        results.forEach(result => {
+          if (result.price !== null) {
+            newPrices[result.symbol] = {
+              price: result.price,
+              change: result.change,
+              changePercent: result.changePercent
+            };
+          }
+        });
+
+        setStockPrices(prevPrices => ({...prevPrices, ...newPrices}));
+      } catch (error) {
+        console.error("Failed to fetch category prices:", error);
+      } finally {
+        setLoadingPrices(false);
+      }
+    };
+
+    // Fetch latest prices for popular stocks
+    const fetchLatestPricesForPopular = async () => {
+      if (loadingPrices) return;
+
+      setLoadingPrices(true);
+
+      const symbols = popularStocks.map(stock => stock.symbol);
+
+      try {
+        const promises = symbols.map(async (sym) => {
+          try {
+            const res = await axios.get("http://localhost:5000/stock", {
+              params: {
+                symbol: sym,
+                interval: '1d',
+                period: '5d'
+              }
+            });
+
+            if (res.data && res.data.data && Array.isArray(res.data.data) && res.data.data.length > 1) {
+              const latestData = res.data.data.sort((a, b) => {
+                const dateA = new Date(a.Date || a.Datetime);
+                const dateB = new Date(b.Date || b.Datetime);
+                return dateB - dateA; // Descending order
+              });
+
+              const latest = latestData[0];
+              const previous = latestData[1];
+
+              return {
+                symbol: sym,
+                price: latest.Close,
+                change: latest.Close - previous.Close,
+                changePercent: ((latest.Close - previous.Close) / previous.Close) * 100
+              };
+            }
+            return { symbol: sym, price: null, change: null, changePercent: null };
+          } catch (error) {
+            return { symbol: sym, price: null, change: null, changePercent: null };
+          }
+        });
+
+        const results = await Promise.all(promises);
+
+        const newPrices = {};
+        results.forEach(result => {
+          if (result.price !== null) {
+            newPrices[result.symbol] = {
+              price: result.price,
+              change: result.change,
+              changePercent: result.changePercent
+            };
+          }
+        });
+
+        setStockPrices(prevPrices => ({...prevPrices, ...newPrices}));
+      } catch (error) {
+        console.error("Failed to fetch popular prices:", error);
+      } finally {
+        setLoadingPrices(false);
+      }
+    };
+
+    if (showStocksList && selectedCategory !== null) {
+      fetchLatestPricesForCategory(selectedCategory);
+    } else if (showStocksList && selectedCategory === null) {
+      fetchLatestPricesForPopular();
+    }
+  }, [showStocksList, selectedCategory, loadingPrices]);
+
+  // Fungsi untuk memfilter saham berdasarkan istilah pencarian
+  const filterStocks = (term) => {
+    setSearchTerm(term);
+
+    // Debouncing: hanya terapkan filter setelah pengguna berhenti mengetik selama 300ms
+    if (filterTimeout) {
+      clearTimeout(filterTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      // Filter logic akan diterapkan di rendering
+    }, 300);
+
+    setFilterTimeout(timeout);
+  };
+
+  // Filter saham berdasarkan pencarian
+  const getFilteredStocks = () => {
+    if (!searchTerm) {
+      return [];
+    }
+
+    const term = searchTerm.toLowerCase();
+
+    // Flatten semua saham dari semua kategori
+    const allStocks = stockCategories.reduce((acc, category) => {
+      return [...acc, ...category.stocks];
+    }, [...popularStocks]);
+
+    // Filter berdasarkan term pencarian dan hilangkan duplikat
+    return allStocks.filter((stock, index, self) =>
+        (stock.symbol.toLowerCase().includes(term) ||
+            stock.name.toLowerCase().includes(term)) &&
+        index === self.findIndex(s => s.symbol === stock.symbol)
+    );
+  };
+
+  // Helper functions
+  function formatDateForInput(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  function formatDateTime(dateString) {
+    if (!dateString) return '-';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if invalid date
+
+    // Format: DD-MM-YYYY HH:MM:SS
+    return date.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  }
+
+  function formatPrice(price, currency = 'Rp') {
+    if (price === null || price === undefined) return '-';
+    return `${currency} ${price.toLocaleString('id-ID')}`;
+  }
+
+  function getRelativeTime(date) {
+    if (!date) return '';
+
+    const seconds = Math.floor((new Date() - date) / 1000);
+
+    let interval = Math.floor(seconds / 31536000);
+    if (interval > 1) return `${interval} years ago`;
+    if (interval === 1) return '1 year ago';
+
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return `${interval} months ago`;
+    if (interval === 1) return '1 month ago';
+
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) return `${interval} days ago`;
+    if (interval === 1) return '1 day ago';
+
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) return `${interval} hours ago`;
+    if (interval === 1) return '1 hour ago';
+
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) return `${interval} minutes ago`;
+    if (interval === 1) return '1 minute ago';
+
+    return seconds < 5 ? 'just now' : `${seconds} seconds ago`;
+  }
+
+  // Data fetching function
+  const fetchStock = useCallback(async (symbolToFetch = null) => {
+    // Use provided symbol or current symbol state
+    const stockSymbol = symbolToFetch || symbol;
+
+    // Jika tidak ada symbol, jangan fetch data
+    if (!stockSymbol.trim()) {
+      setStockData([]);
+      setError(null);
+      setLastFetched(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    // Update activeSymbol dan symbol state
+    setActiveSymbol(stockSymbol);
+    if (symbolToFetch) setSymbol(stockSymbol);
+
+    try {
+      const params = {
+        symbol: stockSymbol,
+        interval: chartInterval
+      };
+
+      // Use custom date range or standard period
+      if (useDateRange && startDate && endDate) {
+        params.start_date = startDate;
+        params.end_date = endDate;
+      } else {
+        params.period = chartPeriod;
+      }
+
+      const res = await axios.get("http://localhost:5000/stock", { params });
+
+      if (res.data && res.data.data && Array.isArray(res.data.data)) {
+        // Determine currency symbol based on stock symbol
+        const isIndonesianStock = stockSymbol.endsWith('.JK') ||
+            stockSymbol === '^JKSE' ||
+            stockSymbol === '^IDXENERGY' ||
+            stockSymbol === '^IDXBASIC' ||
+            stockSymbol === '^IDXINDUST' ||
+            stockSymbol === '^IDXNONCYC' ||
+            stockSymbol === '^IDXCYCLIC' ||
+            stockSymbol === '^IDXHEALTH' ||
+            stockSymbol === '^IDXFINANCE' ||
+            stockSymbol === '^IDXTECHNO' ||
+            stockSymbol.startsWith('^IDX');
+
+        setCurrencySymbol(isIndonesianStock ? 'Rp' : '$');
+
+        // Sort the data array by date in descending order (newest first)
+        const sortedData = [...res.data.data].sort((a, b) => {
+          const dateA = new Date(a.Date || a.Datetime);
+          const dateB = new Date(b.Date || b.Datetime);
+          return dateB - dateA; // Descending order
+        });
+
+        // Update data info
+        setDataInfo({
+          isRealtime: false,
+          delay: isIndonesianStock ? "15 minutes" : "15-20 minutes",
+          source: "Yahoo Finance (yfinance)"
+        });
+
+        setStockData(sortedData);
+        setLastFetched(new Date());
+
+        // Update stock price in state
+        if (sortedData.length > 1) {
+          const latest = sortedData[0];
+          const previous = sortedData[1];
+
+          setStockPrices(prevPrices => ({
+            ...prevPrices,
+            [stockSymbol]: {
+              price: latest.Close,
+              change: latest.Close - previous.Close,
+              changePercent: ((latest.Close - previous.Close) / previous.Close) * 100
+            }
+          }));
+        }
+      } else {
+        setError('Invalid data format received from server');
+        setStockData([]);
+      }
+    } catch (err) {
+      console.error('Error details:', err);
+      setStockData([]);
+
+      if (err.response) {
+        if (err.response.status === 404) {
+          setError(`No data found for symbol: ${stockSymbol}`);
+        } else {
+          setError(`Server error: ${err.response.data?.error || 'Unknown error'}`);
+        }
+      } else if (err.request) {
+        setError('Server not responding. Please check if backend is running.');
+      } else {
+        setError(`Failed to fetch data: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    symbol,
+    chartInterval,
+    useDateRange,
+    startDate,
+    endDate,
+    chartPeriod
+  ]);
+
+  // Handle keyboard Enter for input field
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && symbol.trim()) {
+      e.preventDefault();
+      fetchStock();
+      setShowStocksList(false);
+    } else if (e.key === 'Escape') {
+      setShowStocksList(false);
+    } else if (e.key === 'ArrowDown' && showStocksList) {
+      e.preventDefault();
+      // Logic to navigate dropdown with keyboard could be added here
+    }
+  };
+
+  // Handle selection dari dropdown
+  // Optimized stock selection handler with useCallback
+  const handleStockSelect = useCallback((selectedSymbol) => {
+    // Validate input
+    if (!selectedSymbol || typeof selectedSymbol !== 'string') {
+      console.error('Invalid symbol provided to handleStockSelect:', selectedSymbol);
+      return;
+    }
+
+    // Close dropdown immediately for better UX
+    setShowStocksList(false);
+
+    // Update the symbol state
+    setSymbol(selectedSymbol);
+
+    // Navigate to stocks page if we're not already there
+    if (currentPage !== 'stocks') {
+      navigate('stocks', { symbol: selectedSymbol });
+    }
+
+    // Fetch data immediately
+    fetchStock(selectedSymbol);
+  }, [fetchStock, currentPage, navigate]);
+
+  // Set up real-time updates for active symbol
+  useInterval(() => {
+    if (realtime && activeSymbol.trim()) {
+      fetchStock(activeSymbol);
+    }
+  }, refreshInterval);
+
+  // Effect to handle URL parameter for symbol
+  useEffect(() => {
+    if (urlParams && urlParams.symbol && currentPage === 'stocks') {
+      setSymbol(urlParams.symbol);
+      fetchStock(urlParams.symbol);
+    }
+  }, [urlParams, currentPage, fetchStock]);
+
+  // Update NavBar component to use our navigation function
+  const NavBarWithNavigation = () => (
+    <NavBar onNavigate={(page) => navigate(page)} currentPage={currentPage} />
+  );
+
+  // Komponen welcome screen dengan ikon dan informasi
+  const WelcomeScreen = () => (
+      <div className="welcome-screen" style={{
+        textAlign: 'center',
+        padding: '40px 20px',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+        margin: '20px 0'
+      }}>
+        <div style={{
+          fontSize: '60px',
+          marginBottom: '20px',
+          color: '#4CAF50'
+        }}>
+          {/* SVG Icon for stock or chart */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+          </svg>
+        </div>
+        <h2 style={{
+          fontSize: '24px',
+          fontWeight: '600',
+          color: '#333',
+          marginBottom: '15px'
+        }}>Selamat Datang di Stock Data Viewer</h2>
+        <p style={{
+          fontSize: '16px',
+          color: '#666',
+          maxWidth: '600px',
+          margin: '0 auto 20px',
+          lineHeight: '1.6'
+        }}>
+          Pilih saham dari dropdown atau ketik kode saham di atas untuk melihat data historis dan grafik pergerakan harga.
+          Contoh: <strong>BBCA.JK</strong> untuk Bank BCA, <strong>TLKM.JK</strong> untuk Telkom Indonesia, atau <strong>^JKSE</strong> untuk Indeks Harga Saham Gabungan.
+        </p>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '10px',
+          marginTop: '20px'
+        }}>
+          <button
+              onClick={() => handleStockSelect('BBCA.JK')}
+              className="btn"
+              style={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+          >
+            BBCA.JK
+          </button>
+          <button
+              onClick={() => handleStockSelect('^JKSE')}
+              className="btn"
+              style={{
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+          >
+            ^JKSE
+          </button>
+          <button
+              onClick={() => handleStockSelect('ASII.JK')}
+              className="btn"
+              style={{
+                backgroundColor: '#9C27B0',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+          >
+            ASII.JK
+          </button>
+          <button
+              onClick={() => handleStockSelect('TLKM.JK')}
+              className="btn"
+              style={{
+                backgroundColor: '#FF5722',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+          >
+            TLKM.JK
+          </button>
+        </div>
+      </div>
+  );
+
+  // Komponen StockItem dengan harga dan indikator
+  const StockItem = ({ stock, category = 'populer' }) => {
+    const priceData = stockPrices[stock.symbol];
+    const isLoading = loadingPrices && !priceData;
+
+    const isPositive = priceData && priceData.change > 0;
+    const isNegative = priceData && priceData.change < 0;
+
+    return (
+        <div
+            className="enhanced-stock-item"
+            onClick={() => {
+                handleStockSelect(stock.symbol);
+            }}
+        >
+          <div className="stock-item-content">
+            <div className="stock-item-info">
+              <div className="stock-item-symbol">{stock.symbol}</div>
+              <div className="stock-item-name">{stock.name}</div>
+            </div>
+
+            {isLoading ? (
+                <div className="stock-item-price">
+                  <div className="price-skeleton"></div>
+                </div>
+            ) : priceData ? (
+                <div className="stock-item-price">
+                  <div className="price-value">{formatPrice(priceData.price, stock.symbol.endsWith('.JK') ? 'Rp' : '$')}</div>
+                  <div className={`price-change ${isPositive ? 'positive' : isNegative ? 'negative' : 'neutral'}`}>
+                <span className="price-change-icon">
+                  {isPositive ? '▲' : isNegative ? '▼' : '•'}
+                </span>
+                    <span className="price-change-value">
+                  {isPositive ? '+' : isNegative ? '-' : ''}{Math.abs(priceData.change).toFixed(2)} ({isPositive ? '+' : isNegative ? '-' : ''}{Math.abs(pr
