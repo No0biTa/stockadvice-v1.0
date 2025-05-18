@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import Loader from './Loader';
 import useStockAPI from '../components/hooks/useStockAPI';
-import DevNoticeModal from './DevNoticeModal'; // Import DevNoticeModal
+import DevNoticeModal from './DevNoticeModal';
 import '../styles/StockAnalysisPage.css';
 
 // Lazy loading StockChart
@@ -116,6 +116,8 @@ const StockAnalysisPage = ({
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTimeout, setFilterTimeout] = useState(null);
+  const [isScrollingTabs, setIsScrollingTabs] = useState(false);
+  const scrollTimeout = useRef();
 
   // State for storing last prices of stocks
   const [stockPrices, setStockPrices] = useState({});
@@ -126,6 +128,10 @@ const StockAnalysisPage = ({
 
   // State for preloaded categories
   const [preloadedCategories, setPreloadedCategories] = useState({});
+
+  // Di bagian state, tambahkan state untuk overlay search
+  const [overlaySearchVisible, setOverlaySearchVisible] = useState(false);
+  const [overlaySearchTerm, setOverlaySearchTerm] = useState('');
 
   // State untuk DevNoticeModal
   const [symbol, setSymbol] = useState('');
@@ -159,7 +165,7 @@ const StockAnalysisPage = ({
   });
 
   // Tambahkan state dan ref untuk dropdown positioning
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, bottom: 'auto', left: 0, width: 0 });
   const inputGroupRef = useRef(null);
   const symbolInputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -176,60 +182,218 @@ const StockAnalysisPage = ({
 
   // Calculate if we're in mobile view
   const isMobileView = windowWidth < 768;
+  const isSmallMobile = windowWidth < 576;
   const isLargeScreen = windowWidth >= 1400;
+
+  // Handle tab scroll for mobile
+  const handleTabScroll = () => {
+    setIsScrollingTabs(true);
+    clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      setIsScrollingTabs(false);
+    }, 150);
+  };
 
   // Fungsi untuk update posisi dropdown - IMPROVED VERSION
   const updateDropdownPosition = () => {
     if (inputGroupRef.current && showStocksList) {
-      const rect = inputGroupRef.current.getBoundingClientRect();
-      const navbarElement = document.querySelector('header, nav');
-      const navbarHeight = navbarElement ? navbarElement.getBoundingClientRect().height : 60;
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
       
-      // Hitung posisi dropdown
-      let topPosition = rect.bottom;
-      let leftPosition = rect.left;
-      let dropdownWidth = Math.min(450, rect.width); // Batas maksimal lebar dropdown
+      // Untuk layar kecil, gunakan design bottom sheet
+      if (viewportWidth < 576) {
+         // Deteksi apakah keyboard terbuka
+        const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
+        const isKeyboardOpen = keyboardHeight > 150;
       
-      // Periksa apakah dropdown akan berada di atas navbar
-      if (rect.top < navbarHeight) {
-        // Tempatkan dropdown relatif terhadap layar dan tambahkan offset navbar
-        topPosition = navbarHeight + 5; // 5px padding dari navbar
-      }
-      
-      // Untuk layar kecil, gunakan design yang lebih responsif
-      if (viewportWidth < 768) {
-        // Pada mobile, buat dropdown lebih lebar dan di tengah
-        dropdownWidth = Math.min(viewportWidth * 0.95, 450);
-        leftPosition = (viewportWidth - dropdownWidth) / 2;
+        // Untuk mobile, gunakan layout bottom sheet
+        setDropdownPosition({
+          top: isKeyboardOpen ? '5%' : '15%',
+          bottom: 'auto',
+          left: 0,
+          width: '100%'
+        });
       } else {
-        // Pastikan dropdown tidak keluar dari layar
+        // Untuk layar yang lebih besar
+        const rect = inputGroupRef.current.getBoundingClientRect();
+        const navbarElement = document.querySelector('header, nav');
+        const navbarHeight = navbarElement ? navbarElement.getBoundingClientRect().height : 60;
+        
+        // Hitung posisi dropdown
+        let topPosition = rect.bottom;
+        let leftPosition = rect.left;
+        
+        // Batasi lebar dropdown
+        let dropdownWidth = Math.min(600, Math.max(320, rect.width));
+        
+        // Pastikan dropdown tidak keluar dari viewport
         if (leftPosition + dropdownWidth > viewportWidth) {
           leftPosition = Math.max(10, viewportWidth - dropdownWidth - 10);
         }
+        
+        // Pastikan posisi top tidak terlalu rendah
+        const maxTop = viewportHeight - 100;
+        if (topPosition > maxTop) {
+          topPosition = rect.top - 320; // Posisikan di atas input
+        }
+        
+        setDropdownPosition({
+          top: topPosition,
+          bottom: 'auto',
+          left: leftPosition,
+          width: dropdownWidth
+        });
       }
-      
-      setDropdownPosition({
-        top: topPosition,
-        left: leftPosition,
-        width: dropdownWidth
-      });
     }
   };
+
+    // Tambahkan state untuk mendeteksi keyboard
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Effect untuk mendeteksi virtual keyboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const handleResize = () => {
+        // Deteksi keyboard dengan memeriksa perbedaan height viewport
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        const isKeyboard = keyboardHeight > 150;
+        
+        setIsKeyboardVisible(isKeyboard);
+        
+        // Jika keyboard terbuka, tambahkan class ke body
+        if (isKeyboard) {
+          document.body.classList.add('keyboard-open');
+          
+          // Jika dropdown ada, sesuaikan posisinya
+          if (dropdownRef.current) {
+            // Sesuaikan posisi dropdown berdasarkan keyboard
+            dropdownRef.current.style.top = '5%';
+            dropdownRef.current.style.maxHeight = '60vh';
+          }
+        } else {
+          document.body.classList.remove('keyboard-open');
+          
+          // Kembalikan posisi dropdown ke normal jika keyboard tertutup
+          if (dropdownRef.current && showStocksList) {
+            dropdownRef.current.style.top = '15%';
+            dropdownRef.current.style.maxHeight = '70vh';
+          }
+        }
+      };
+      
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+        document.body.classList.remove('keyboard-open');
+      };
+    }
+  }, [showStocksList]);
+
+  useEffect(() => {
+      if (showStocksList) {
+        // Cari semua input dalam overlay
+        const overlayInputs = document.querySelectorAll('.overlay-search');
+        
+        // Fungsi untuk mencegah dropdown tertutup saat focus/click pada input
+        const preventDropdownClose = (e) => {
+          e.stopPropagation();
+        };
+        
+        // Tambahkan event listener ke semua input
+        overlayInputs.forEach(input => {
+          input.addEventListener('click', preventDropdownClose);
+          input.addEventListener('focus', preventDropdownClose);
+          input.addEventListener('touchstart', preventDropdownClose);
+        });
+        
+        return () => {
+          // Cleanup event listener
+          overlayInputs.forEach(input => {
+            input.removeEventListener('click', preventDropdownClose);
+            input.removeEventListener('focus', preventDropdownClose);
+            input.removeEventListener('touchstart', preventDropdownClose);
+          });
+        };
+      }
+    }, [showStocksList]);
 
   // Update posisi dropdown saat scroll
   useEffect(() => {
     if (showStocksList) {
       // Tambahkan kelas no-scroll pada body untuk mencegah scroll
       document.body.classList.add('no-scroll');
+
+      // Fungsi untuk menangani perubahan viewport saat keyboard muncul
+        const handleVisualViewport = () => {
+          if (window.visualViewport) {
+            // Perbarui posisi dropdown saat viewport berubah (keyboard muncul/menghilang)
+            if (window.innerWidth <= 576) {
+              // Untuk mobile, selalu gunakan layout bottom sheet
+              setDropdownPosition({
+                top: 'auto',
+                bottom: 0,
+                left: 0,
+                width: '100%'
+              });
+              
+              // Force re-render untuk memastikan dropdown tetap terlihat
+              if (dropdownRef.current) {
+                dropdownRef.current.style.transform = 'translateZ(0)';
+              }
+            }
+          }
+        };
+
+      // Tambahkan event listener untuk visualViewport
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleVisualViewport);
+        window.visualViewport.addEventListener('scroll', handleVisualViewport);
+      }
       
       // Update position awal
       updateDropdownPosition();
       
-      const handleScroll = () => {
-        // Saat scroll, segera tutup dropdown
-        setShowStocksList(false);
-      };
+      const handleScroll = (e) => {
+          // Pastikan e.target ada dan valid sebelum mencoba menggunakan closest
+          if (!e || !e.target) return;
+          
+          // Periksa apakah target memiliki metode closest
+          const hasClosestMethod = typeof e.target.closest === 'function';
+          
+          // Jangan tutup dropdown jika scroll terjadi di dalam dropdown
+          if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
+            return;
+          }
+          
+          // Jangan tutup dropdown jika scroll terjadi di overlay search
+          // Gunakan metode closest jika tersedia, jika tidak gunakan alternatif
+          if (hasClosestMethod && e.target.closest('.overlay-search-container')) {
+            return;
+          } else if (!hasClosestMethod) {
+            // Alternatif untuk browser yang tidak mendukung closest
+            let element = e.target;
+            let isInSearchContainer = false;
+            
+            // Traversal manual untuk memeriksa jika elemen berada dalam overlay-search-container
+            while (element) {
+              if (element.classList && element.classList.contains('overlay-search-container')) {
+                isInSearchContainer = true;
+                break;
+              }
+              element = element.parentElement;
+            }
+            
+            if (isInSearchContainer) {
+              return;
+            }
+          }
+          
+          // Untuk scroll di luar dropdown, tutup dropdown
+          setShowStocksList(false);
+        };
       
       // Tambahkan event listener untuk scroll
       window.addEventListener('scroll', handleScroll);
@@ -238,13 +402,28 @@ const StockAnalysisPage = ({
       // Clean up
       return () => {
         document.body.classList.remove('no-scroll');
-        window.removeEventListener('scroll', handleScroll);
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', handleVisualViewport);
+          window.visualViewport.removeEventListener('scroll', handleVisualViewport);
+        }
+        window.removeEventListener('scroll', handleScroll, true);
         window.removeEventListener('resize', updateDropdownPosition);
       };
     } else {
       document.body.classList.remove('no-scroll');
     }
   }, [showStocksList]);
+
+  // Tambahkan event listener untuk scroll pada tabs
+  useEffect(() => {
+    const tabsElement = document.querySelector('.stock-category-tabs');
+    if (tabsElement && windowWidth < 768) {
+      tabsElement.addEventListener('scroll', handleTabScroll);
+      return () => {
+        tabsElement.removeEventListener('scroll', handleTabScroll);
+      };
+    }
+  }, [windowWidth, showStocksList]);
 
   // Modifikasi useEffect untuk mengecek modal saat mount
   useEffect(() => {
@@ -432,42 +611,100 @@ const StockAnalysisPage = ({
 
   // Effect for window resize listener with debounce
   useEffect(() => {
-    let resizeTimer;
-    
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        setWindowWidth(window.innerWidth);
-      }, 100);
-    };
+  let resizeTimer;
+  
+  const handleResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      setWindowWidth(window.innerWidth);
 
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(resizeTimer);
-    };
-  }, []);
+      // Check if main search is visible
+      const mainSearchElement = symbolInputRef.current;
+      if (mainSearchElement) {
+        const rect = mainSearchElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        // Hanya tampilkan overlay search jika input utama tidak visible atau layar kecil
+        const isVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
+        const isSmall = window.innerWidth <= 576;
+        
+        // Tampilkan overlay search hanya jika input utama tidak visible ATAU layar kecil
+        setOverlaySearchVisible(!isVisible || isSmall);
+      }
+    }, 100);
+  };
+
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('scroll', handleResize);
+  // Initial check
+  handleResize();
+
+  return () => {
+    window.removeEventListener('resize', handleResize);
+    window.removeEventListener('scroll', handleResize);
+    clearTimeout(resizeTimer);
+  };
+}, []);
+
 
   // Effect to handle clicks outside of dropdown
   useEffect(() => {
     function handleClickOutside(event) {
-      if (
-          dropdownRef.current &&
-          !dropdownRef.current.contains(event.target) &&
-          !event.target.closest('.enhanced-stock-item') &&
-          !event.target.closest('.enhanced-stock-dropdown') &&
-          !event.target.closest('.stock-category-tabs') &&
-          !inputGroupRef.current.contains(event.target)
-      ) {
-        setShowStocksList(false);
+      // Pastikan event.target ada dan valid
+      if (!event || !event.target) return;
+      
+      // Jangan tutup dropdown jika input search sedang fokus
+      if (event.target.classList.contains('overlay-search') || 
+          event.target.closest('.overlay-search-container')) {
+        return;
+      }
+      
+      // Periksa apakah target memiliki metode closest
+      const hasClosestMethod = typeof event.target.closest === 'function';
+      
+      // Fungsi helper untuk memeriksa apakah elemen berada di dalam kontainer tertentu
+      const isElementInContainer = (element, containerClassName) => {
+        let current = element;
+        while (current) {
+          if (current.classList && current.classList.contains(containerClassName)) {
+            return true;
+          }
+          current = current.parentElement;
+        }
+        return false;
+      };
+      
+      // Periksa apakah klik di luar dropdown
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        // Periksa apakah klik pada elemen lain yang seharusnya tidak menutup dropdown
+        const isInNestedComponents = 
+          (hasClosestMethod && (
+            event.target.closest('.enhanced-stock-item') ||
+            event.target.closest('.enhanced-stock-dropdown') ||
+            event.target.closest('.stock-category-tabs') ||
+            event.target.closest('.overlay-search-container')
+          )) || 
+          (!hasClosestMethod && (
+            isElementInContainer(event.target, 'enhanced-stock-item') ||
+            isElementInContainer(event.target, 'enhanced-stock-dropdown') ||
+            isElementInContainer(event.target, 'stock-category-tabs') ||
+            isElementInContainer(event.target, 'overlay-search-container')
+          ));
+        
+        // Periksa apakah klik pada input group
+        const isInInputGroup = inputGroupRef.current && inputGroupRef.current.contains(event.target);
+        
+        // Jika klik di luar semua komponen yang relevan, tutup dropdown
+        if (!isInNestedComponents && !isInInputGroup) {
+          setShowStocksList(false);
+        }
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
   // Fetch stock prices for dropdown with optimized batch processing
   const fetchLatestPricesForCategory = useCallback(async (categoryIndex) => {
@@ -578,6 +815,71 @@ const StockAnalysisPage = ({
     // Update state timeout
     setFilterTimeout(timeout);
   }, [filterTimeout]);
+
+  // Perbaikan untuk handleOverlaySearch dan filterStocks
+
+// 1. Hindari penggunaan filterStocks dalam handleOverlaySearch untuk mencegah dependency cycle
+const handleOverlaySearch = useCallback((term) => {
+  // Prevent dropdown from closing and ensure overlay stays visible
+  setOverlaySearchTerm(term);
+  setSymbol(term);
+  
+  // Langsung set searchTerm tanpa memanggil filterStocks
+  setSearchTerm(term);
+  
+  // Pastikan dropdown tetap terbuka
+  if (!showStocksList) {
+    setShowStocksList(true);
+    // Update posisi dropdown
+    setTimeout(updateDropdownPosition, 50);
+  }
+  
+  // Clear timeout sebelumnya jika ada
+  if (filterTimeout) {
+    clearTimeout(filterTimeout);
+  }
+  
+  // Set timeout baru untuk debounced search
+  const timeout = setTimeout(() => {
+    // Log untuk debugging
+    console.log(`Search applied for term: ${term}`);
+  }, 300);
+  
+  // Update state timeout
+  setFilterTimeout(timeout);
+}, [showStocksList, filterTimeout, updateDropdownPosition]);
+
+// 2. Tambahkan event listener untuk mencegah keyboard menghilangkan overlay
+useEffect(() => {
+  if (isSmallMobile && showStocksList) {
+    // Fungsi untuk mempertahankan overlay saat keyboard muncul/hilang
+    const handleVisualViewportResize = () => {
+      // Selalu pastikan overlay search tetap visible
+      setOverlaySearchVisible(true);
+      
+      // Force render dropdown agar tetap terlihat
+      if (dropdownRef.current) {
+        dropdownRef.current.style.transform = 'translateZ(0)';
+        dropdownRef.current.style.display = 'block';
+      }
+    };
+    
+    // Tambahkan event listener untuk visualViewport
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportResize);
+      window.visualViewport.addEventListener('scroll', handleVisualViewportResize);
+    }
+    
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportResize);
+        window.visualViewport.removeEventListener('scroll', handleVisualViewportResize);
+      }
+    };
+  }
+}, [isSmallMobile, showStocksList]);
+
+// 3. Modifikasi overlay search container untuk mencegah hilang saat keyboard muncul
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -901,44 +1203,86 @@ const StockAnalysisPage = ({
                 </button>
               </div>
 
+              {/* Backdrop untuk mobile */}
+              {showStocksList && isSmallMobile && (
+                <div className="dropdown-backdrop" onClick={() => setShowStocksList(false)}></div>
+              )}
+
               {/* Dropdown Stock List dengan posisi fixed */}
               {showStocksList && (
                 <div 
                   className="enhanced-stock-dropdown" 
                   style={{
                     position: 'fixed',
-                    top: `${dropdownPosition.top}px`,
-                    left: `${dropdownPosition.left}px`,
-                    width: `${dropdownPosition.width}px`,
-                    maxHeight: isLargeScreen ? '600px' : 'calc(90vh - 70px)',
+                    top: dropdownPosition.top !== 'auto' ? `${dropdownPosition.top}px` : 'auto',
+                    bottom: dropdownPosition.bottom !== 'auto' ? `${dropdownPosition.bottom}px` : 'auto',
+                    left: typeof dropdownPosition.left === 'string' ? dropdownPosition.left : `${dropdownPosition.left}px`,
+                    width: typeof dropdownPosition.width === 'string' ? dropdownPosition.width : `${dropdownPosition.width}px`,
+                    maxHeight: isLargeScreen ? '600px' : 'calc(80vh)',
+                    maxHeight: isKeyboardVisible ? '60vh' : '70vh',
                     zIndex: 9999,
                   }}
                   ref={dropdownRef}
                   role="listbox"
                 >
-                  {/* Tabs for categories */}
-                  <div className="stock-category-tabs">
-                    <button
-                      className={selectedCategory === null ? 'active' : ''}
-                      onClick={() => {
-                        setSelectedCategory(null);
-                        resetSearchFilter();
-                      }}
+                  {/* Tombol Close untuk layar kecil */}
+                  {isSmallMobile && (
+                    <button 
+                      className="dropdown-close-button"
+                      onClick={() => setShowStocksList(false)}
+                      aria-label="Tutup dropdown"
                     >
-                      Populer
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
                     </button>
-                    {getCurrentCategories().map((category, idx) => (
+                  )}
+                  
+                  {/* Input search adaptif - akan muncul jika input utama terhalangi */}
+                  <div className={`overlay-search-container ${overlaySearchVisible ? 'visible' : ''}`}>
+                    <input
+                      type="text"
+                      className="overlay-search"
+                      value={overlaySearchTerm}
+                      onChange={(e) => handleOverlaySearch(e.target.value)}
+                      onFocus={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      placeholder="Cari saham (contoh: BBCA.JK)"
+                    />
+                  </div>
+
+                  {/* Tabs for categories */}
+                  <div className="stock-category-tabs-container">
+                    <div className="stock-category-tabs" onScroll={handleTabScroll}>
                       <button
-                        key={idx}
-                        className={selectedCategory === idx ? 'active' : ''}
+                        className={selectedCategory === null ? 'active' : ''}
                         onClick={() => {
-                          setSelectedCategory(idx);
+                          setSelectedCategory(null);
                           resetSearchFilter();
                         }}
                       >
-                        {category.name}
+                        Populer
                       </button>
-                    ))}
+                      {getCurrentCategories().map((category, idx) => (
+                        <button
+                          key={idx}
+                          className={selectedCategory === idx ? 'active' : ''}
+                          onClick={() => {
+                            setSelectedCategory(idx);
+                            resetSearchFilter();
+                          }}
+                        >
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
+                    {isMobileView && (
+                      <div className={`tab-scroll-indicator ${isScrollingTabs ? 'hidden' : ''}`}>
+                        <span>➔</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Search results */}
@@ -1383,25 +1727,6 @@ const StockAnalysisPage = ({
         <p>
           Untuk data real-time yang sebenarnya, Anda perlu berlangganan API penyedia data keuangan premium.
         </p>
-      </div>
-
-      {/* Tambahkan tombol untuk menampilkan modal secara manual */}
-      <div style={{ textAlign: 'center', margin: '20px 0' }}>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="btn"
-          style={{
-            backgroundColor: '#10B981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          Lihat Status Pengembangan
-        </button>
       </div>
     </div>
   );

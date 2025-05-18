@@ -1,7 +1,62 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 import '../styles/AboutPage.css';
 
 const AboutPage = () => {
+  const form = useRef();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [statusMessage, setStatusMessage] = useState({
+    text: '',
+    isError: false,
+    visible: false
+  });
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData({
+      ...formData,
+      [id]: value
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setStatusMessage({ text: 'Mengirim pesan...', isError: false, visible: true });
+
+    // Replace these with your actual EmailJS credentials
+    const serviceId = 'sa_svc_emailjs01';
+    const templateId = 'temp_stockadvice_v1.0';
+    const publicKey = '1PFRkAIxWyrCujcFc';
+
+    emailjs.sendForm(serviceId, templateId, form.current, publicKey)
+      .then((result) => {
+        console.log('SUCCESS!', result.text);
+        setStatusMessage({ text: 'Pesan berhasil terkirim!', isError: false, visible: true });
+        
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          message: ''
+        });
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => {
+          setStatusMessage(prev => ({ ...prev, visible: false }));
+        }, 5000);
+      })
+      .catch((error) => {
+        console.log('FAILED...', error.text);
+        setStatusMessage({ text: 'Gagal mengirim pesan. Silakan coba lagi.', isError: true, visible: true });
+      });
+  };
+  
   return (
     <div className="about-container">
       <section className="about-hero">
@@ -292,18 +347,47 @@ const AboutPage = () => {
           
           <div className="contact-form">
             <h3>Kirim Pesan</h3>
-            <form>
+            {statusMessage.visible && (
+              <div className={`status-message ${statusMessage.isError ? 'error' : 'success'}`}>
+                {statusMessage.text}
+              </div>
+            )}
+            <form ref={form} onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="name">Nama</label>
-                <input type="text" id="name" placeholder="Nama Anda" />
+                <input 
+                  type="text" 
+                  id="name" 
+                  name="name"
+                  placeholder="Nama Anda" 
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="email">Email</label>
-                <input type="email" id="email" placeholder="Email Anda" />
+                <input 
+                  type="email" 
+                  id="email" 
+                  name="email"
+                  placeholder="Email Anda" 
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="message">Pesan</label>
-                <textarea id="message" rows="4" placeholder="Tulis pesan Anda di sini"></textarea>
+                <textarea 
+                  id="message" 
+                  name="message"
+                  rows="4" 
+                  placeholder="Tulis pesan Anda di sini"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                ></textarea>
               </div>
               <button type="submit" className="submit-button">Kirim Pesan</button>
             </form>

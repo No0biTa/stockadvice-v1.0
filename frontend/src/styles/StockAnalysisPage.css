@@ -14,6 +14,10 @@
   --light-bg: #f8fafc;
 }
 
+body {
+  overflow-x: hidden;
+}
+
 /* Existing code with updated colors */
 .app-content {
   padding: 20px;
@@ -95,26 +99,6 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
-/* Pastikan UI tetap konsisten */
-.search-results {
-  padding: 15px;
-}
-
-.search-results h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.no-results {
-  padding: 20px 0;
-  text-align: center;
-  color: #64748b;
-  font-size: 14px;
-}
-
 .dropdown-toggle-improved {
   background-color: var(--primary-color);
   color: white;
@@ -128,7 +112,7 @@
   font-size: 14px;
   height: 100%;
   min-width: 80px;
-  justify-content: center;
+    justify-content: center;
 }
 
 .dropdown-toggle-improved:hover {
@@ -159,7 +143,7 @@
 
 .btn-primary {
   background-color: var(--primary-color);
-    color: white;
+  color: white;
 }
 
 .btn-primary:hover {
@@ -175,19 +159,19 @@
   background-color: #0D9488; /* Darker teal */
 }
 
-/* Perbaikan untuk dropdown list */
+/* Perbaikan untuk dropdown list responsive */
 .enhanced-stock-dropdown {
   position: fixed !important;
   background: white;
+  padding-top: 45px;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   z-index: 9999 !important;
   border: 1px solid var(--border-color);
   overflow: auto;
-  max-height: calc(90vh - 70px);
-  width: 100% !important; /* Pastikan lebar dropdown sama dengan input group */
-  max-width: 450px; /* Batasi lebar maksimal dropdown */
-  margin-top: 0 !important;
+  -webkit-overflow-scrolling: touch; /* Untuk scrolling yang lebih halus di iOS */
+  max-height: 70vh; /* Batasi tinggi maksimum menjadi 70% dari viewport height */
+  animation: slideUpDropdown 0.2s ease-out forwards;
 }
 
 /* Style untuk navbar - tambahkan untuk memastikan z-index navbar lebih tinggi */
@@ -222,6 +206,13 @@ body.no-scroll {
 /* Tambahkan class baru untuk container dropdown agar bisa dijadikan referensi posisi */
 .dropdown-container {
   position: relative;
+}
+
+/* Container untuk tabs dan indicator */
+.stock-category-tabs-container {
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
 }
 
 /* Category tabs */
@@ -261,7 +252,10 @@ body.no-scroll {
   white-space: nowrap;
 }
 
+/* Indicator untuk active tab agar lebih jelas */
 .stock-category-tabs button.active {
+  position: relative;
+  font-weight: 600;
   color: var(--primary-color);
   background-color: white;
 }
@@ -270,10 +264,40 @@ body.no-scroll {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 10%;
+  width: 80%;
   height: 3px;
   background-color: var(--primary-color);
+  border-radius: 3px 3px 0 0;
+}
+
+/* Tab scroll indicator */
+.tab-scroll-indicator {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.9));
+  padding: 5px 10px;
+  border-radius: 15px;
+  opacity: 0.8;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.tab-scroll-indicator.hidden {
+  opacity: 0;
+}
+
+.tab-scroll-indicator span {
+  color: var(--primary-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
 /* Styling untuk container grafik pada StockAnalysisPage */
@@ -376,6 +400,83 @@ body.no-scroll {
 .stock-item-price {
   text-align: right;
   min-width: 30%; /* Berikan lebar minimum untuk harga */
+}
+
+/* Gaya untuk overlay */
+.stock-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.98);
+  z-index: 1000;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.stock-overlay-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stock-overlay-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px 10px;
+}
+
+/* Input search adaptif di overlay */
+.overlay-search-container {
+  display: none;
+  padding: 10px 15px;
+  padding-right: 50px;
+  position: sticky;
+  top: 0;
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  border-radius: 8px 8px 0 0;
+  z-index: 999;
+}
+
+/* Tampilkan hanya jika memiliki class visible */
+.overlay-search-container.visible {
+  display: block;
+}
+
+.overlay-search {
+  width: 100%;
+  max-width: calc(100% - 40px); /* Batasi lebar maksimum search input */
+  padding: 8px 12px; /* Kurangi padding dari 10px 15px */
+  padding-right: 40px; /* Tambahkan padding kanan untuk tombol close */
+  font-size: 14px; /* Kurangi ukuran font dari 15px */
+  border-radius: 6px; /* Kurangi border radius dari 8px */
+  border: 1px solid #ddd;
+  outline: none;
+}
+
+.overlay-search:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Konten overlay */
+.stock-overlay-content {
+  padding: 16px;
+  flex: 1;
 }
 
 .price-value {
@@ -663,55 +764,7 @@ input:checked + .toggle-slider:before {
   color: var(--text-dark);
 }
 
-/* Styling untuk kotak pencarian di dalam dropdown */
-.dropdown-search-container {
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  background-color: #f8fafc;
-  z-index: 10; /* Pastikan search box selalu di atas konten dropdown */
-  display: none;
-}
-
-.dropdown-search-input {
-  width: 100%;
-  padding: 8px 30px 8px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  font-size: 14px;
-  outline: none;
-}
-
-.dropdown-search-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-}
-
-.dropdown-search-clear {
-  position: absolute;
-  right: 25px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-}
-
-.dropdown-search-clear:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #334155;
-}
-
-/* Update styling untuk hasil pencarian */
+/* Search results */
 .search-results {
   padding: 15px;
 }
@@ -852,7 +905,75 @@ input:checked + .toggle-slider:before {
   transition: opacity 0.3s;
 }
 
+/* Tombol Close untuk layar kecil */
+.dropdown-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10001;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none; /* Hilangkan border */
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  color: #64748b; /* Warna abu-abu yang lebih soft */
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Tambahkan shadow ringan */
+  transition: all 0.2s ease-out; /* Animasi smooth */
+}
+
+.dropdown-close-button:hover {
+  background-color: #f3f4f6;
+  color: #334155; /* Warna lebih gelap saat hover */
+  transform: scale(1.05); /* Sedikit membesar saat hover */
+}
+
+.dropdown-close-button:active {
+  transform: scale(0.95); /* Efek tekan saat diklik */
+}
+
+/* Backdrop untuk layar kecil */
+.dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.4);
+  z-index: 9998;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 /* Responsive layout improvements */
+
+@media screen and (min-width: 992px) {
+  .overlay-search-container {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .search-container {
     flex-direction: column;
@@ -921,21 +1042,159 @@ input:checked + .toggle-slider:before {
   .stock-table td {
     padding: 8px 10px;
     font-size: 13px;
+    .overlay-search-container {
+    display: block; /* Always visible on small screens */
+    }
+  }
+
+   .dropdown-close-button {
+    position: absolute !important;
+    top: 12px !important;
+    right: 15px !important;
+    z-index: 10002 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: white !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    border-radius: 50% !important;
+  }
+
+  /* Modifikasi style untuk dropdown body agar scroll bekerja dengan baik */
+  .stock-list-container, 
+  .search-results {
+    max-height: calc(60vh - 100px) !important;
+    overflow-y: auto !important;
+    padding-bottom: 50px !important; /* Tambahkan padding bawah untuk ruang */
+    -webkit-overflow-scrolling: touch !important;
+    padding: 10px !important;
   }
   
   .enhanced-stock-dropdown {
-    width: 90% !important;
-    left: 5% !important;
+    position: fixed !important;
+    bottom: auto !important; /* Hapus posisi bottom */
+    top: 15% !important; /* Posisikan dari atas sekitar 15% screen height */
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 70vh !important; /* Kurangi tinggi maksimal */
+    border-radius: 12px;
+    padding-top: 0;
+    z-index: 10000;
+    transform: translateZ(0);
+    margin: 0 auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+  }
+
+  .keyboard-open .enhanced-stock-dropdown {
+    top: 5% !important; /* Geser lebih ke atas saat keyboard muncul */
+    max-height: 60vh !important; /* Kurangi tinggi maksimal */
+  }
+
+  /* Posisikan tombol close agar tidak terganggu keyboard */
+  .dropdown-close-button {
+    position: absolute !important;
+    top: 12px !important;
+    right: 15px !important;
+    z-index: 10002 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: white !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    border-radius: 50% !important;
+  }
+
+  .overlay-search-container {
+    position: sticky !important;
+    top: 0 !important;
+    padding: 12px 15px !important;
+    padding-top: 12px !important;
+    padding-right: 50px !important;
+    z-index: 10001 !important;
+    display: block !important;
+    background-color: white;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .overlay-search-container.visible {
+    display: block !important;
+    padding: 12px 15px;
+    padding-top: 12px;
+    padding-right: 50px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
   
+  /* Pastikan input search selalu terlihat */
+  .overlay-search {
+    width: 100% !important;
+    padding: 10px 15px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    font-size: 15px !important;
+    box-shadow: none !important;
+    -webkit-appearance: none !important; /* Perbaikan untuk Safari */
+  }
+  
+  /* Styling untuk tab kategori pada mobile */
   .stock-category-tabs {
+    display: flex;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0;
+    background-color: #f5f7fa;
+    border-radius: 8px 8px 0 0;
+    scrollbar-width: thin;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+    margin-top: 5px; /* Tambahkan margin top untuk memberikan jarak */
+  }
+  /* Tambahkan ruang antara search dan tab kategori */
+  .stock-category-tabs-container {
+    margin-top: 5px !important;
+    position: relative !important;
+    z-index: 9999;
+  }
+  
+  .stock-category-tabs::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
   }
   
   .stock-category-tabs button {
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* Styling untuk item saham dalam list */
+  .enhanced-stock-item {
+    padding: 12px;
+  }
+  
+  .stock-item-content {
+    padding: 4px 0;
+  }
+  
+  .stock-item-symbol {
+    font-size: 15px;
+  }
+  
+  .stock-item-name {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  
+  /* Hindari overlap dengan UI lainnya */
+  .stock-list-container h4 {
+    margin: 5px 0;
+    font-size: 14px;
   }
   
   .welcome-screen {
@@ -946,13 +1205,21 @@ input:checked + .toggle-slider:before {
     padding: 8px 12px;
     font-size: 13px;
   }
+  
+  /* Handle landscape mode */
+  @media (orientation: landscape) {
+    .enhanced-stock-dropdown {
+      max-height: 90vh !important;
+      bottom: 5px !important;
+    }
+  }
 }
 
 /* Perbaikan untuk tampilan stock-dropdown di layar kecil */
 @media (max-width: 480px) {
   .enhanced-stock-dropdown {
-    width: 95% !important;
-    left: 2.5% !important;
+    width: 96% !important;
+    left: 2% !important;
     max-height: 80vh !important;
   }
   
@@ -981,7 +1248,20 @@ input:checked + .toggle-slider:before {
 }
 
 /* Layout kompak untuk tablet */
-@media (max-width: 992px) and (min-width: 769px) {
+@media (min-width: 577px) and (max-width: 991px) {
+  .enhanced-stock-dropdown {
+    width: 92% !important;
+    left: 4% !important;
+    max-height: 75vh !important;
+  }
+  
+  /* Buat grid 2 kolom pada tablet untuk stock list */
+  .stock-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
   .stock-selector-container {
     flex-wrap: nowrap;
     align-items: flex-end;
