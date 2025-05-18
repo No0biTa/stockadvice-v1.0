@@ -174,7 +174,7 @@ const NewsPage = () => {
   useEffect(() => {
     const fetchSources = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/news/sources');
+        const response = await axios.get('https://stockadvice-v1-0.onrender.com/news/sources');
         console.log('Sources response:', response.data);
         
         if (response.data && response.data.sources) {
@@ -240,22 +240,22 @@ const NewsPage = () => {
           if (activeFilter !== 'all') {
             // Kumpulkan berita dari sumber populer dengan kategori tertentu
             popularSources.forEach(source => {
-              endpoint = `http://localhost:5000/news?source=${source}&category=${activeFilter}`;
+              endpoint = `https://stockadvice-v1-0.onrender.com/news?source=${source}&category=${activeFilter}`;
               allNewsPromises.push(axios.get(endpoint));
             });
             
             // Tambahkan fallback news dari Finnhub/Yahoo dengan kategori yang dipilih
-            endpoint = `http://localhost:5000/news?category=${activeFilter}`;
+            endpoint = `https://stockadvice-v1-0.onrender.com/news?category=${activeFilter}`;
             allNewsPromises.push(axios.get(endpoint));
           } else {
             // Jika kategori 'all', kumpulkan semua berita terbaru dari sumber populer
             popularSources.forEach(source => {
-              endpoint = `http://localhost:5000/news?source=${source}`;
+              endpoint = `https://stockadvice-v1-0.onrender.com/news?source=${source}`;
               allNewsPromises.push(axios.get(endpoint));
             });
             
             // Tambahkan fallback news dari Finnhub/Yahoo
-            endpoint = 'http://localhost:5000/news';
+            endpoint = 'https://stockadvice-v1-0.onrender.com/news';
             allNewsPromises.push(axios.get(endpoint));
           }
           
@@ -306,7 +306,7 @@ const NewsPage = () => {
           setNews(sortedNews);
         } else {
           // Logic lama untuk sumber tunggal
-          let endpoint = 'http://localhost:5000/news';
+          let endpoint = 'https://stockadvice-v1-0.onrender.com/news';
           
           // Jika bukan opsi "Semua", tambahkan parameter sumber
           endpoint += `?source=${activeSource}`;
