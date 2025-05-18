@@ -441,20 +441,20 @@ body.no-scroll {
 
 /* Input search adaptif di overlay */
 .overlay-search-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  display: none;
   padding: 10px 15px;
-  padding-top: 45px; /* Berikan ruang untuk tombol close */
+  padding-right: 50px;
+  position: sticky;
+  top: 0;
   background-color: white;
   border-bottom: 1px solid #eee;
   border-radius: 8px 8px 0 0;
   z-index: 999;
 }
 
+/* Tampilkan hanya jika memiliki class visible */
 .overlay-search-container.visible {
-  display: flex;
+  display: block;
 }
 
 .overlay-search {
@@ -965,7 +965,15 @@ input:checked + .toggle-slider:before {
   }
 }
 
+
 /* Responsive layout improvements */
+
+@media screen and (min-width: 992px) {
+  .overlay-search-container {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .search-container {
     flex-direction: column;
@@ -1113,6 +1121,15 @@ input:checked + .toggle-slider:before {
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .overlay-search-container.visible {
+    display: block !important;
+    padding: 12px 15px;
+    padding-top: 12px;
+    padding-right: 50px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
   
   /* Pastikan input search selalu terlihat */

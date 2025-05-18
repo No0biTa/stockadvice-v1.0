@@ -202,10 +202,14 @@ const StockAnalysisPage = ({
       
       // Untuk layar kecil, gunakan design bottom sheet
       if (viewportWidth < 576) {
+         // Deteksi apakah keyboard terbuka
+        const keyboardHeight = window.innerHeight - (window.visualViewport?.height || window.innerHeight);
+        const isKeyboardOpen = keyboardHeight > 150;
+      
         // Untuk mobile, gunakan layout bottom sheet
         setDropdownPosition({
-          top: 'auto',
-          bottom: 0,
+          top: isKeyboardOpen ? '5%' : '15%',
+          bottom: 'auto',
           left: 0,
           width: '100%'
         });
@@ -242,6 +246,51 @@ const StockAnalysisPage = ({
       }
     }
   };
+
+    // Tambahkan state untuk mendeteksi keyboard
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Effect untuk mendeteksi virtual keyboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const handleResize = () => {
+        // Deteksi keyboard dengan memeriksa perbedaan height viewport
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        const isKeyboard = keyboardHeight > 150;
+        
+        setIsKeyboardVisible(isKeyboard);
+        
+        // Jika keyboard terbuka, tambahkan class ke body
+        if (isKeyboard) {
+          document.body.classList.add('keyboard-open');
+          
+          // Jika dropdown ada, sesuaikan posisinya
+          if (dropdownRef.current) {
+            // Sesuaikan posisi dropdown berdasarkan keyboard
+            dropdownRef.current.style.top = '5%';
+            dropdownRef.current.style.maxHeight = '60vh';
+          }
+        } else {
+          document.body.classList.remove('keyboard-open');
+          
+          // Kembalikan posisi dropdown ke normal jika keyboard tertutup
+          if (dropdownRef.current && showStocksList) {
+            dropdownRef.current.style.top = '15%';
+            dropdownRef.current.style.maxHeight = '70vh';
+          }
+        }
+      };
+      
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+        document.body.classList.remove('keyboard-open');
+      };
+    }
+  }, [showStocksList]);
 
   useEffect(() => {
       if (showStocksList) {
@@ -562,35 +611,39 @@ const StockAnalysisPage = ({
 
   // Effect for window resize listener with debounce
   useEffect(() => {
-    let resizeTimer;
-    
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        setWindowWidth(window.innerWidth);
+  let resizeTimer;
+  
+  const handleResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      setWindowWidth(window.innerWidth);
 
-        // Check if main search is visible
-        const mainSearchElement = symbolInputRef.current;
-        if (mainSearchElement) {
-          const rect = mainSearchElement.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          const isVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
-          setOverlaySearchVisible(!isVisible);
-        }
-      }, 100);
-    };
+      // Check if main search is visible
+      const mainSearchElement = symbolInputRef.current;
+      if (mainSearchElement) {
+        const rect = mainSearchElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        // Hanya tampilkan overlay search jika input utama tidak visible atau layar kecil
+        const isVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
+        const isSmall = window.innerWidth <= 576;
+        
+        // Tampilkan overlay search hanya jika input utama tidak visible ATAU layar kecil
+        setOverlaySearchVisible(!isVisible || isSmall);
+      }
+    }, 100);
+  };
 
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('scroll', handleResize);
-      // Initial check
-      handleResize();
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('scroll', handleResize);
+  // Initial check
+  handleResize();
 
-      return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize);
-      clearTimeout(resizeTimer);
-    };
-  }, []);
+  return () => {
+    window.removeEventListener('resize', handleResize);
+    window.removeEventListener('scroll', handleResize);
+    clearTimeout(resizeTimer);
+  };
+}, []);
 
 
   // Effect to handle clicks outside of dropdown
@@ -1166,6 +1219,7 @@ useEffect(() => {
                     left: typeof dropdownPosition.left === 'string' ? dropdownPosition.left : `${dropdownPosition.left}px`,
                     width: typeof dropdownPosition.width === 'string' ? dropdownPosition.width : `${dropdownPosition.width}px`,
                     maxHeight: isLargeScreen ? '600px' : 'calc(80vh)',
+                    maxHeight: isKeyboardVisible ? '60vh' : '70vh',
                     zIndex: 9999,
                   }}
                   ref={dropdownRef}
@@ -1186,12 +1240,15 @@ useEffect(() => {
                   )}
                   
                   {/* Input search adaptif - akan muncul jika input utama terhalangi */}
-                  <div className={`overlay-search-container ${overlaySearchVisible || isSmallMobile ? 'visible' : ''}`}>
+                  <div className={`overlay-search-container ${overlaySearchVisible ? 'visible' : ''}`}>
                     <input
                       type="text"
                       className="overlay-search"
                       value={overlaySearchTerm}
                       onChange={(e) => handleOverlaySearch(e.target.value)}
+                      onFocus={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
                       placeholder="Cari saham (contoh: BBCA.JK)"
                     />
                   </div>
