@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 
+PORT = int(os.environ.get('PORT', 5000))
 # Cache for stock data to reduce API calls
 # Cache timeout in seconds (1 hour)
 CACHE_TIMEOUT = 3600
@@ -661,4 +662,4 @@ def health_check():
     }), 200
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=PORT, debug=True)

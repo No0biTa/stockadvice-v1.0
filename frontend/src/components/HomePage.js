@@ -128,7 +128,7 @@ const HomePage = ({ onNavigate }) => {
       try {
         const promises = popularStocks.map(async (stock) => {
           try {
-            const res = await axios.get("https://stockadvice-v1-0.onrender.com/stock", {
+            const res = await axios.get("http://localhost:5000/stock", {
               params: {
                 symbol: stock.symbol,
                 interval: '1d',

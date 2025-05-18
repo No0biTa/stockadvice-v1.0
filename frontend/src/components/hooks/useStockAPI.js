@@ -23,7 +23,7 @@ const useStockAPI = () => {
   
   // If not cached or expired, fetch from API
   try {
-    const res = await axios.get("https://stockadvice-v1-0.onrender.com/stock", { params });
+    const res = await axios.get("http://localhost:5000/stock", { params });
     
     if (res.data && res.data.data && Array.isArray(res.data.data)) {
       // Process data
