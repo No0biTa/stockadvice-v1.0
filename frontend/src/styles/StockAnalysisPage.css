@@ -14,6 +14,10 @@
   --light-bg: #f8fafc;
 }
 
+body {
+  overflow-x: hidden;
+}
+
 /* Existing code with updated colors */
 .app-content {
   padding: 20px;
@@ -159,6 +163,7 @@
 .enhanced-stock-dropdown {
   position: fixed !important;
   background: white;
+  padding-top: 45px;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   z-index: 9999 !important;
@@ -207,6 +212,7 @@ body.no-scroll {
 .stock-category-tabs-container {
   position: relative;
   width: 100%;
+  margin-top: 10px;
 }
 
 /* Category tabs */
@@ -394,6 +400,83 @@ body.no-scroll {
 .stock-item-price {
   text-align: right;
   min-width: 30%; /* Berikan lebar minimum untuk harga */
+}
+
+/* Gaya untuk overlay */
+.stock-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.98);
+  z-index: 1000;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.stock-overlay-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stock-overlay-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px 10px;
+}
+
+/* Input search adaptif di overlay */
+.overlay-search-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 15px;
+  padding-top: 45px; /* Berikan ruang untuk tombol close */
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  border-radius: 8px 8px 0 0;
+  z-index: 999;
+}
+
+.overlay-search-container.visible {
+  display: flex;
+}
+
+.overlay-search {
+  width: 100%;
+  max-width: calc(100% - 40px); /* Batasi lebar maksimum search input */
+  padding: 8px 12px; /* Kurangi padding dari 10px 15px */
+  padding-right: 40px; /* Tambahkan padding kanan untuk tombol close */
+  font-size: 14px; /* Kurangi ukuran font dari 15px */
+  border-radius: 6px; /* Kurangi border radius dari 8px */
+  border: 1px solid #ddd;
+  outline: none;
+}
+
+.overlay-search:focus {
+  border-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Konten overlay */
+.stock-overlay-content {
+  padding: 16px;
+  flex: 1;
 }
 
 .price-value {
@@ -827,8 +910,9 @@ input:checked + .toggle-slider:before {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(240, 240, 240, 0.8);
-  border: none;
+  z-index: 10001;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none; /* Hilangkan border */
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -836,9 +920,21 @@ input:checked + .toggle-slider:before {
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #555;
-  z-index: 100;
   cursor: pointer;
+  color: #64748b; /* Warna abu-abu yang lebih soft */
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Tambahkan shadow ringan */
+  transition: all 0.2s ease-out; /* Animasi smooth */
+}
+
+.dropdown-close-button:hover {
+  background-color: #f3f4f6;
+  color: #334155; /* Warna lebih gelap saat hover */
+  transform: scale(1.05); /* Sedikit membesar saat hover */
+}
+
+.dropdown-close-button:active {
+  transform: scale(0.95); /* Efek tekan saat diklik */
 }
 
 /* Backdrop untuk layar kecil */
@@ -938,27 +1034,115 @@ input:checked + .toggle-slider:before {
   .stock-table td {
     padding: 8px 10px;
     font-size: 13px;
+    .overlay-search-container {
+    display: block; /* Always visible on small screens */
+    }
+  }
+
+   .dropdown-close-button {
+    position: absolute !important;
+    top: 12px !important;
+    right: 15px !important;
+    z-index: 10002 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: white !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    border-radius: 50% !important;
+  }
+
+  /* Modifikasi style untuk dropdown body agar scroll bekerja dengan baik */
+  .stock-list-container, 
+  .search-results {
+    max-height: calc(60vh - 100px) !important;
+    overflow-y: auto !important;
+    padding-bottom: 50px !important; /* Tambahkan padding bawah untuk ruang */
+    -webkit-overflow-scrolling: touch !important;
+    padding: 10px !important;
   }
   
   .enhanced-stock-dropdown {
-    width: 96% !important; /* Lebar hampir full screen pada mobile */
-    left: 2% !important; /* Margin 2% di kiri dan kanan */
-    right: 2% !important;
-    max-height: 80vh !important; /* Beri ruang lebih banyak pada mobile */
-    top: auto !important; /* Posisikan dropdown dari bawah */
-    bottom: 10px !important; /* Jarak dari bawah layar */
-    border-radius: 12px !important; /* Border radius lebih besar */
-    box-shadow: 0 -2px 20px rgba(0,0,0,0.2) !important; /* Shadow dari bawah */
+    position: fixed !important;
+    bottom: auto !important; /* Hapus posisi bottom */
+    top: 15% !important; /* Posisikan dari atas sekitar 15% screen height */
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 70vh !important; /* Kurangi tinggi maksimal */
+    border-radius: 12px;
+    padding-top: 0;
+    z-index: 10000;
+    transform: translateZ(0);
+    margin: 0 auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+  }
+
+  .keyboard-open .enhanced-stock-dropdown {
+    top: 5% !important; /* Geser lebih ke atas saat keyboard muncul */
+    max-height: 60vh !important; /* Kurangi tinggi maksimal */
+  }
+
+  /* Posisikan tombol close agar tidak terganggu keyboard */
+  .dropdown-close-button {
+    position: absolute !important;
+    top: 12px !important;
+    right: 15px !important;
+    z-index: 10002 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: white !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    border-radius: 50% !important;
+  }
+
+  .overlay-search-container {
+    position: sticky !important;
+    top: 0 !important;
+    padding: 12px 15px !important;
+    padding-top: 12px !important;
+    padding-right: 50px !important;
+    z-index: 10001 !important;
+    display: block !important;
+    background-color: white;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  
+  /* Pastikan input search selalu terlihat */
+  .overlay-search {
+    width: 100% !important;
+    padding: 10px 15px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    font-size: 15px !important;
+    box-shadow: none !important;
+    -webkit-appearance: none !important; /* Perbaikan untuk Safari */
   }
   
   /* Styling untuk tab kategori pada mobile */
   .stock-category-tabs {
-    padding: 0;
-    flex-wrap: nowrap;
+    display: flex;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
+    border-bottom: 1px solid var(--border-color);
+    padding: 0;
+    background-color: #f5f7fa;
+    border-radius: 8px 8px 0 0;
+    scrollbar-width: thin;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+    margin-top: 5px; /* Tambahkan margin top untuk memberikan jarak */
+  }
+  /* Tambahkan ruang antara search dan tab kategori */
+  .stock-category-tabs-container {
+    margin-top: 5px !important;
+    position: relative !important;
+    z-index: 9999;
   }
   
   .stock-category-tabs::-webkit-scrollbar {
@@ -966,8 +1150,8 @@ input:checked + .toggle-slider:before {
   }
   
   .stock-category-tabs button {
-    padding: 12px;
-    font-size: 13px;
+    padding: 10px;
+    font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -992,8 +1176,8 @@ input:checked + .toggle-slider:before {
   
   /* Hindari overlap dengan UI lainnya */
   .stock-list-container h4 {
-    margin: 8px 0;
-    font-size: 15px;
+    margin: 5px 0;
+    font-size: 14px;
   }
   
   .welcome-screen {
