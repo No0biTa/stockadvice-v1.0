@@ -6,6 +6,18 @@ import Loader from './components/Loader';
 import { popularStocks, stockCategories, companyProfiles, isIndonesianStock } from './components/utils/StockUtils';
 import './App.css';
 
+import { track } from '@vercel/analytics';
+
+function RouteChangeTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    track('pageView', { path: location.pathname });
+  }, [location]);
+  
+  return null;
+}
+
 // Lazy loading components untuk meningkatkan performa
 const HomePage = lazy(() => import('./components/HomePage'));
 const NewsPage = lazy(() => import('./components/NewsPage'));
