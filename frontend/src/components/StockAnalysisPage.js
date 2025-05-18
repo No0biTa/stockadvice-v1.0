@@ -1728,25 +1728,6 @@ useEffect(() => {
           Untuk data real-time yang sebenarnya, Anda perlu berlangganan API penyedia data keuangan premium.
         </p>
       </div>
-
-      {/* Tambahkan tombol untuk menampilkan modal secara manual */}
-      <div style={{ textAlign: 'center', margin: '20px 0' }}>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="btn"
-          style={{
-            backgroundColor: '#10B981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          Lihat Status Pengembangan
-        </button>
-      </div>
     </div>
   );
 };
