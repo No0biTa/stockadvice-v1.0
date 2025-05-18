@@ -357,69 +357,209 @@
   100% { background-position: 100% 0; }
 }
 
-/* Responsive design */
-@media (max-width: 1200px) {
-  .home-container {
-    padding: 20px;
+/* Responsif untuk desktop dan tablet */
+@media (min-width: 1200px) {
+  .features-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    padding: 0;
+  }
+  
+  .feature-card {
+    padding: 35px 20px; /* Kembalikan padding asli pada layar besar */
+  }
+  
+  .popular-stocks-section,
+  .features-section {
+    padding: 3rem 2rem;
   }
 }
 
-@media (max-width: 992px) {
-  .stocks-grid, .features-grid {
+/* Responsif untuk tablet */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .stocks-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(4, 1fr); /* Tetap 4 kolom */
+    gap: 15px; /* Kurangi gap untuk muat di layar */
+  }
+
+  .feature-card {
+    padding: 30px 15px;
+  }
+
+  .feature-icon {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 15px;
+  }
+  
+  .feature-card p {
+    font-size: 0.9rem;
+  }
+  
+  .popular-stocks-section,
+  .features-section {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+/* Responsif untuk mobile landscape */
+@media (max-width: 767px) {
+  .stocks-grid {
+    grid-template-columns: repeat(2, 1fr); /* Ubah ke 2 kolom */
+    gap: 15px;
+    padding: 0 10px;
+  }
+  
+  .features-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
   
-  .hero-content h1 {
-    font-size: 2.4rem;
+  .popular-stocks-section,
+  .features-section {
+    padding: 2rem 1rem;
   }
 }
 
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 40px 20px;
+/* Responsif untuk mobile portrait kecil (dibawah 480px) */
+@media (max-width: 480px) {
+  .stocks-grid {
+    grid-template-columns: repeat(2, 1fr); /* Ubah ke 2 kolom untuk mobile portrait juga */
+    gap: 10px; 
+    padding: 0 10px;
+  }
+
+  .stock-card {
+    padding: 12px 10px; /* Padding lebih kecil */
+    height: auto; /* Biarkan tinggi menyesuaikan konten */
+    min-height: 120px; /* Atur tinggi minimum */
   }
   
+  .stock-symbol {
+    font-size: 1.1rem; /* Font ukuran simbol lebih kecil */
+    margin-bottom: 2px;
+  }
+  
+  .stock-name {
+    font-size: 0.75rem; /* Font ukuran nama lebih kecil */
+    margin-bottom: 8px;
+  }
+  
+  .stock-price {
+    font-size: 1rem; /* Font ukuran harga lebih kecil */
+    margin-bottom: 3px;
+  }
+  
+  .stock-change {
+    font-size: 0.75rem; /* Font ukuran perubahan lebih kecil */
+    padding: 2px 6px; /* Padding lebih kecil */
+  }
+  
+  /* Menghilangkan beberapa margin untuk menghemat ruang */
+  .stock-price-container {
+    margin-top: 8px;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 kolom untuk tampilan 2x2 */
+    gap: 12px; /* Jarak lebih kecil antar card */
+    padding: 0 10px;
+  }
+  
+  .feature-card {
+    padding: 1.2rem 0.8rem; /* Padding lebih kecil */
+    min-height: 170px; /* Menetapkan tinggi minimum */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  
+  .feature-icon {
+    width: 40px; /* Ukuran icon lebih kecil */
+    height: 40px;
+    margin-bottom: 0.6rem;
+  }
+  
+  .feature-icon svg {
+    width: 24px; /* Ukuran svg lebih kecil */
+    height: 24px;
+  }
+  
+  .feature-card h3 {
+    font-size: 0.95rem; /* Font judul lebih kecil */
+    margin-bottom: 0.5rem;
+  }
+  
+  .feature-card p {
+    font-size: 0.75rem; /* Font paragraf lebih kecil */
+    line-height: 1.5;
+    margin: 0;
+  }
+  
+  .feature-card h3:after {
+    bottom: -3px; /* Garis bawah judul lebih dekat */
+    height: 1px;
+  }
+  
+  /* Section paddings */
+  .popular-stocks-section,
+  .features-section {
+    padding: 1.5rem 0.5rem;
+  }
+}
+
+/* Untuk layar kecil, pastikan hero section muat dengan baik */
+@media (max-width: 480px) {
   .hero-content h1 {
     font-size: 2rem;
   }
   
   .hero-content p {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
   }
   
-  .section-title {
-    font-size: 1.8rem;
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+  
+  .cta-button {
+    padding: 0.7rem 1.4rem;
+    font-size: 0.9rem;
   }
 }
 
-@media screen and (max-width: 576px) {
-  /* Perbaikan kartu saham */
-  .stocks-grid {
-    grid-template-columns: 1fr;
+/* Perbaiki issue dengan layout yang terlalu padat pada mobile */
+@media (max-width: 375px) {
+  .hero-content h1 {
+    font-size: 1.8rem;
+  }
+  
+  .hero-section {
+    padding: 1.5rem 0.8rem;
   }
   
   .stock-card {
-    width: 100%;
-    margin-bottom: 15px;
+    height: 150px; /* Sedikit lebih compact lagi */
   }
   
-  /* Perbaikan fitur kartu */
-  .features-grid {
-    grid-template-columns: 1fr;
+  .stock-symbol {
+    font-size: 1.2rem;
   }
   
-  /* Hero section */
-  .hero-section {
-    padding: 30px 15px;
+  .features-grid,
+  .stocks-grid {
+    padding: 0 10px;
   }
-  
-  .hero-content h1 {
-    font-size: 28px;
-    margin-bottom: 10px;
-  }
-  
-  .hero-content p {
-    font-size: 16px;
-    margin-bottom: 20px;
-  }
+}
+
+/* Biarkan jarak bawah untuk tampilan nyaman pada mobile dengan layar kecil */
+.features-section:last-child {
+  margin-bottom: 20px;
+  padding-bottom: 30px;
 }
